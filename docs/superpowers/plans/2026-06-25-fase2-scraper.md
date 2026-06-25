@@ -1464,3 +1464,13 @@ git add -A && git commit -m "✅ test(fase2): green full suite for scraper" || e
 - `casualties`/`stats` no se ingieren en Fase 2 (YAGNI; el bot no los necesita aún).
 
 **Fuera de alcance (fases posteriores):** bot de Telegram (Fase 3), frontends (Fases 4–5), reconfiguración de cadencia desde admin (Fase 5).
+
+## Limitaciones conocidas (aceptadas en MVP — fast-follow)
+
+Surgidas de la revisión final whole-branch. Aceptadas a propósito en esta fase; se atacan más adelante:
+
+- **Sin reconciliación de borrados upstream / sin TTL.** Cada corrida hace upsert del set actual, pero un ítem que desaparece de la fuente (un desaparecido encontrado, un acopio cerrado) **no se elimina** de DynamoDB ni del `snapshot.json`. Con el tiempo el snapshot puede mostrar registros resueltos como activos. Fast-follow: filtrar por `lastSeenAt` (staleness) en `buildSnapshot`, o atributo TTL en la tabla / marcar `resuelto`.
+- **`reportes` topeado a `limit=200`** en `sismovenezuela /api/reports/feed`. Los demás endpoints de sismo (`building-damage`, `needs`, `relief-centers`, `missing-persons/external`) no tienen `limit` y se cargan completos en memoria bajo el timeout de 15s del fetch. Hoy son chicos; revisar si crecen.
+- **Upsert secuencial** en el orquestador (~4K round-trips Get+Put por corrida con el subconjunto geo). Entra en el timeout de 5 min hoy, pero con poco margen. Fast-follow: concurrencia acotada (`Promise.all` por lotes de 25–50) o `BatchWriteItem`. (Costo en $ trivial: DynamoDB es PAY_PER_REQUEST; el riesgo es latencia/timeout, no dinero.)
+- **Texto de terceros sin sanitizar en el snapshot.** `titulo`/`texto` (y `descripcion`, `place`, `needs`, `nombre`) llegan crudos vía `truncate()` (solo recorta, no escapa) y van al `snapshot.json` sin escapar. No explotable en esta fase, pero **el frontend que renderice el snapshot DEBE escapar** (riesgo de stored-XSS). Invariante a mantener: los desaparecidos excluyen `contacto`/`foto`/`contact_info` del payload público (solo viven en `raw`, que el snapshot descarta).
+- **Duplicación cross-source.** Un mismo ítem presente en ambas fuentes se guarda 2 veces (clave por `sourceId`); aceptable en MVP (el LLM sintetiza). Dedup cross-source queda fuera de alcance.
