@@ -20,6 +20,12 @@ interface Deps {
   getConnector: typeof defaultGetConnector;
 }
 
+// Bounded concurrency for upserts: each upsert is a Get + conditional Put
+// round-trip, so a fully sequential loop over thousands of items blows the
+// Lambda timeout. Processing in fixed-size concurrent batches keeps DynamoDB
+// (PAY_PER_REQUEST, no provisioned ceiling) busy without unbounded parallelism.
+const UPSERT_CONCURRENCY = 25;
+
 export async function runScrape(
   now: string,
   deps?: Partial<Deps>,
@@ -48,9 +54,12 @@ export async function runScrape(
       if (!connector) throw new Error(`no connector for ${source.id}`);
       const items = await connector.fetchItems();
       result.fetched = items.length;
-      for (const item of items) {
-        const r = await itemRepo.upsert(item, now);
-        result[r] += 1;
+      for (let i = 0; i < items.length; i += UPSERT_CONCURRENCY) {
+        const batch = items.slice(i, i + UPSERT_CONCURRENCY);
+        const outcomes = await Promise.all(
+          batch.map((item) => itemRepo.upsert(item, now)),
+        );
+        for (const r of outcomes) result[r] += 1;
       }
       next.lastStatus = "ok";
       next.errorMsg = undefined;
