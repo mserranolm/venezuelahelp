@@ -5,5 +5,9 @@ export default defineConfig({
   resolve: {
     alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
   },
-  test: { globals: true, environment: "node" },
+  test: {
+    globals: true,
+    environment: "node",
+    env: { POWERTOOLS_LOG_LEVEL: "SILENT" },
+  },
 });

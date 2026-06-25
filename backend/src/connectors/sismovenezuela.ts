@@ -1,5 +1,6 @@
 import { fetchJson } from "@/connectors/http";
 import { geo, truncate, type SourceConnector } from "@/connectors/types";
+import { logger } from "@/shared/logger";
 import type { NormalizedItem } from "@/shared/types";
 
 const BASE = "https://www.sismovenezuela.com";
@@ -16,7 +17,11 @@ async function safe(
 ): Promise<NormalizedItem[]> {
   try {
     return await fn();
-  } catch {
+  } catch (err) {
+    logger.warn("sismovenezuela endpoint failed", {
+      label,
+      error: err instanceof Error ? err.message : String(err),
+    });
     return [];
   }
 }
