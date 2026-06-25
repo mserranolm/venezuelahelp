@@ -1,0 +1,49 @@
+{
+  "reports": [
+    {
+      "id": "b7651e6d-747e-4b52-bc6f-b916a8a6dcab",
+      "type": "critical",
+      "lat": 10.6125,
+      "lng": -67.0187,
+      "place": "Residencias Orca",
+      "affected": 15,
+      "needs": "Personas atrapadas se escucha a un niño mandar rescatista",
+      "photoUrl": "/api/reports/b7651e6d-747e-4b52-bc6f-b916a8a6dcab/photo",
+      "createdAt": 1782414095596
+    },
+    {
+      "id": "476b17c6-9fea-4ae0-a59b-494e88955894",
+      "type": "supplies",
+      "lat": 10.1277,
+      "lng": -68.0859,
+      "place": "Carretera vieja tocuyito",
+      "affected": 0,
+      "needs": "Equipos de ayuda",
+      "photoUrl": null,
+      "createdAt": 1782357094823
+    },
+    {
+      "id": "86bf6d05-845a-42f0-8559-3e901c6b3ff8",
+      "type": "building",
+      "lat": 10.4936,
+      "lng": -66.9421,
+      "place": "Bloque 1",
+      "affected": 0,
+      "needs": "Se observan grietas en la paredes del los apartamentos",
+      "photoUrl": "/api/reports/86bf6d05-845a-42f0-8559-3e901c6b3ff8/photo",
+      "createdAt": 1782409535798
+    },
+    {
+      "id": "84b2feb1-70ca-443b-874b-b067afe5d98e",
+      "type": "missing",
+      "lat": 10.6065,
+      "lng": -66.8923,
+      "place": "Residencia Gradisca, Piso 6, Las Quince Letras, Macuto",
+      "affected": 4,
+      "needs": "Mathias Ignacio Marrero. Hijo de Reiner Marrero y Teresa Albareda",
+      "photoUrl": "/api/reports/84b2feb1-70ca-443b-874b-b067afe5d98e/photo",
+      "createdAt": 1782414338231
+    }
+  ],
+  "persistent": true
+}

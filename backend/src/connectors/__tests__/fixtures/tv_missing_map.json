@@ -1,0 +1,24 @@
+{
+  "markers": [
+    {
+      "id": "e55b1b4b-13bc-4344-8715-1b888e8a539b",
+      "name": "Estefany Espinoza",
+      "age": 24,
+      "lastSeen": "Caribe",
+      "photoUrl": "/api/missing/e55b1b4b-13bc-4344-8715-1b888e8a539b/photo",
+      "lat": 9.9097,
+      "lng": -67.3577,
+      "createdAt": 1782397125684
+    },
+    {
+      "id": "72a79a1b-9da2-4b5b-9a9f-2416da7a2f4c",
+      "name": "Juan Figueroa",
+      "age": 19,
+      "lastSeen": "Catia la mar",
+      "photoUrl": "/api/missing/72a79a1b-9da2-4b5b-9a9f-2416da7a2f4c/photo",
+      "lat": 10.5993,
+      "lng": -67.0145,
+      "createdAt": 1782397073691
+    }
+  ]
+}
