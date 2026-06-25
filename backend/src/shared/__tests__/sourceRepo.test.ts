@@ -58,4 +58,38 @@ describe("SourceRepo", () => {
     const enabled = await new SourceRepo().listEnabled();
     expect(enabled.map((s) => s.id)).toEqual(["a"]);
   });
+
+  it("follows pagination across multiple pages in list", async () => {
+    ddbMock
+      .on(ScanCommand)
+      .resolvesOnce({
+        Items: [
+          {
+            PK: "SOURCE#a",
+            SK: "META",
+            id: "a",
+            enabled: true,
+            nombre: "A",
+            url: "u",
+            connector: "jsonApi",
+          },
+        ],
+        LastEvaluatedKey: { PK: "SOURCE#a", SK: "META" },
+      })
+      .resolvesOnce({
+        Items: [
+          {
+            PK: "SOURCE#b",
+            SK: "META",
+            id: "b",
+            enabled: true,
+            nombre: "B",
+            url: "u",
+            connector: "jsonApi",
+          },
+        ],
+      });
+    const all = await new SourceRepo().list();
+    expect(all.map((s) => s.id)).toEqual(["a", "b"]);
+  });
 });

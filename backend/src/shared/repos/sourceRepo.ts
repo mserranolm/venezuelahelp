@@ -28,14 +28,23 @@ export class SourceRepo {
   }
 
   async list(): Promise<Source[]> {
-    const res = await ddb.send(
-      new ScanCommand({
-        TableName: TABLE_NAME,
-        FilterExpression: "SK = :sk",
-        ExpressionAttributeValues: { ":sk": SK },
-      }),
-    );
-    return (res.Items ?? []).map(toSource);
+    const items: Record<string, unknown>[] = [];
+    let ExclusiveStartKey: Record<string, unknown> | undefined;
+    do {
+      const res = await ddb.send(
+        new ScanCommand({
+          TableName: TABLE_NAME,
+          FilterExpression: "SK = :sk",
+          ExpressionAttributeValues: { ":sk": SK },
+          ExclusiveStartKey,
+        }),
+      );
+      items.push(...(res.Items ?? []));
+      ExclusiveStartKey = res.LastEvaluatedKey as
+        | Record<string, unknown>
+        | undefined;
+    } while (ExclusiveStartKey);
+    return items.map(toSource);
   }
 
   async listEnabled(): Promise<Source[]> {

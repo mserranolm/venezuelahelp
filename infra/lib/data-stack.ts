@@ -1,4 +1,4 @@
-import { Stack, StackProps, RemovalPolicy } from "aws-cdk-lib";
+import { Stack, StackProps, RemovalPolicy, Duration } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as s3 from "aws-cdk-lib/aws-s3";
@@ -28,6 +28,7 @@ export class DataStack extends Stack {
 
     this.scraperDlq = new sqs.Queue(this, "ScraperDlq", {
       queueName: "venezuelahelp-scraper-dlq",
+      retentionPeriod: Duration.days(14),
     });
     this.scraperDlq.applyRemovalPolicy(RemovalPolicy.RETAIN);
 

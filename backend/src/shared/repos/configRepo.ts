@@ -16,7 +16,7 @@ export class ConfigRepo {
     const res = await ddb.send(
       new GetCommand({ TableName: TABLE_NAME, Key: CONFIG_KEY }),
     );
-    if (!res.Item) return DEFAULT_CONFIG;
+    if (!res.Item) return { ...DEFAULT_CONFIG };
     return {
       scrapeRateMin: res.Item.scrapeRateMin,
       bedrockModelId: res.Item.bedrockModelId,
