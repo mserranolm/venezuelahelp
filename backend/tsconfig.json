@@ -4,7 +4,12 @@
     "rootDir": "src",
     "outDir": "dist",
     "baseUrl": "src",
-    "paths": { "@/*": ["*"] }
+    "paths": { "@/*": ["*"] },
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "types": ["node"],
+    "noEmit": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["**/*.test.ts"]
 }
