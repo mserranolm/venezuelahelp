@@ -4,6 +4,7 @@ import { ScraperStack } from "../lib/scraper-stack";
 import { BotStack } from "../lib/bot-stack";
 import { FrontendStack } from "../lib/frontend-stack";
 import { AdminStack } from "../lib/admin-stack";
+import { BudgetStack } from "../lib/budget-stack";
 
 const app = new App();
 // Env explícito desde CDK_DEFAULT_ACCOUNT/REGION (poblado por el CLI o pasado
@@ -33,4 +34,11 @@ new AdminStack(app, "VenezuelaHelpAdminStack", {
   env,
   table: data.table,
   scraperFn: scraper.scraperFn,
+});
+// Cost circuit breaker. Override the recipient/ceiling via env at synth/deploy:
+//   ALERT_EMAIL=tu@correo.com BUDGET_LIMIT_USD=10 npx cdk deploy VenezuelaHelpBudgetStack
+new BudgetStack(app, "VenezuelaHelpBudgetStack", {
+  env,
+  alertEmail: process.env.ALERT_EMAIL ?? "mserranolm@gmail.com",
+  monthlyLimitUsd: Number(process.env.BUDGET_LIMIT_USD ?? 10),
 });

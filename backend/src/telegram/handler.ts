@@ -1,5 +1,6 @@
 import { ConfigRepo } from "@/shared/repos/configRepo";
 import { QaLogRepo } from "@/shared/repos/qaLogRepo";
+import { RateLimitRepo } from "@/shared/repos/rateLimitRepo";
 import { logger } from "@/shared/logger";
 import { getTelegramToken, getWebhookSecret } from "@/telegram/secret";
 import { getMe, sendMessage as realSend } from "@/telegram/telegramApi";
@@ -18,6 +19,8 @@ const FALLBACK =
   "Disculpa, estoy con mucha demanda ahora mismo. Intenta de nuevo en un momento.";
 const NO_DATA =
   "No tengo ese dato en la información del terremoto que tengo disponible.";
+const RATE_LIMITED =
+  "Estás enviando preguntas muy rápido. Espera un momento y vuelve a intentar. 🙏";
 const WELCOME = [
   "👋 ¡Hola! Soy el asistente de VenezuelaHelp.",
   "",
@@ -40,6 +43,7 @@ interface Deps {
   getBotUsername: (token: string) => Promise<string>;
   configRepo: Pick<ConfigRepo, "get">;
   qaLogRepo: Pick<QaLogRepo, "append">;
+  rateLimit: Pick<RateLimitRepo, "hit">;
   loadSnapshot: typeof realLoad;
   askBedrock: typeof realAsk;
   sendMessage: typeof realSend;
@@ -61,6 +65,7 @@ export async function handler(
     getBotUsername: deps?.getBotUsername ?? defaultBotUsername,
     configRepo: deps?.configRepo ?? new ConfigRepo(),
     qaLogRepo: deps?.qaLogRepo ?? new QaLogRepo(),
+    rateLimit: deps?.rateLimit ?? new RateLimitRepo(),
     loadSnapshot: deps?.loadSnapshot ?? realLoad,
     askBedrock: deps?.askBedrock ?? realAsk,
     sendMessage: deps?.sendMessage ?? realSend,
@@ -94,6 +99,15 @@ export async function handler(
     // pregunta: damos la bienvenida y explicamos cómo funciona el bot.
     if (isStartCommand(msg)) {
       await d.sendMessage(token, chatId, WELCOME);
+      return ok();
+    }
+
+    // Rate-limit per chat before any expensive work (snapshot read + Bedrock).
+    // Caps a single abuser; the Lambda's reserved concurrency caps the aggregate.
+    const rl = await d.rateLimit.hit(String(chatId));
+    if (!rl.allowed) {
+      logger.warn("chat rate limited", { chatId, count: rl.count });
+      await d.sendMessage(token, chatId, RATE_LIMITED);
       return ok();
     }
 

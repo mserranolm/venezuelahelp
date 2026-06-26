@@ -33,4 +33,10 @@ describe("ScraperStack", () => {
       ScheduleExpression: "rate(30 minutes)",
     });
   });
+
+  it("retains scraper logs for only 14 days (no infinite log cost)", () => {
+    template().hasResourceProperties("AWS::Logs::LogGroup", {
+      RetentionInDays: 14,
+    });
+  });
 });

@@ -17,6 +17,12 @@ describe("DataStack", () => {
     });
   });
 
+  it("enables TTL on the 'ttl' attribute so rate-limit items self-expire", () => {
+    template().hasResourceProperties("AWS::DynamoDB::Table", {
+      TimeToLiveSpecification: { AttributeName: "ttl", Enabled: true },
+    });
+  });
+
   it("creates a snapshot S3 bucket and a scraper DLQ", () => {
     const t = template();
     t.resourceCountIs("AWS::S3::Bucket", 1);

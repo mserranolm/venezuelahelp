@@ -1,9 +1,10 @@
-import { Stack, StackProps, Duration } from "aws-cdk-lib";
+import { Stack, StackProps, Duration, RemovalPolicy } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as sqs from "aws-cdk-lib/aws-sqs";
 import * as lambda from "aws-cdk-lib/aws-lambda";
+import * as logs from "aws-cdk-lib/aws-logs";
 import { NodejsFunction, OutputFormat } from "aws-cdk-lib/aws-lambda-nodejs";
 import * as events from "aws-cdk-lib/aws-events";
 import * as targets from "aws-cdk-lib/aws-events-targets";
@@ -28,6 +29,11 @@ export class ScraperStack extends Stack {
       timeout: Duration.minutes(10),
       memorySize: 512,
       deadLetterQueue: props.dlq,
+      // Short log retention so CloudWatch storage never grows without bound.
+      logGroup: new logs.LogGroup(this, "ScraperFnLogs", {
+        retention: logs.RetentionDays.TWO_WEEKS,
+        removalPolicy: RemovalPolicy.DESTROY,
+      }),
       environment: {
         TABLE_NAME: props.table.tableName,
         SNAPSHOT_BUCKET: props.snapshotBucket.bucketName,

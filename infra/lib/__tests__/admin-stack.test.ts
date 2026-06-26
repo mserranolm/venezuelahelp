@@ -103,4 +103,16 @@ describe("AdminStack", () => {
     const keys = Object.keys(outputs);
     expect(keys.some((k) => k.startsWith("AdminUrl"))).toBe(true);
   });
+
+  it("retains admin logs for only 14 days (no infinite log cost)", () => {
+    template().hasResourceProperties("AWS::Logs::LogGroup", {
+      RetentionInDays: 14,
+    });
+  });
+
+  it("uses the cheapest CloudFront price class (PriceClass_100)", () => {
+    template().hasResourceProperties("AWS::CloudFront::Distribution", {
+      DistributionConfig: Match.objectLike({ PriceClass: "PriceClass_100" }),
+    });
+  });
 });

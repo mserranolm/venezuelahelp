@@ -52,6 +52,9 @@ export class FrontendStack extends Stack {
     );
 
     const distribution = new cloudfront.Distribution(this, "Distribution", {
+      // Cheapest edge footprint (NA/EU). LATAM viewers still resolve fine via
+      // the nearest enabled edge; the ~30% price bump of ALL isn't worth it.
+      priceClass: cloudfront.PriceClass.PRICE_CLASS_100,
       defaultRootObject: "index.html",
       defaultBehavior: {
         origin: origins.S3BucketOrigin.withOriginAccessControl(siteBucket),

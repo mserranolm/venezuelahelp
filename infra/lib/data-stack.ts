@@ -19,6 +19,8 @@ export class DataStack extends Stack {
       partitionKey: { name: "PK", type: dynamodb.AttributeType.STRING },
       sortKey: { name: "SK", type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      // Auto-expire ephemeral items (rate-limit counters) with no manual cleanup.
+      timeToLiveAttribute: "ttl",
       removalPolicy: RemovalPolicy.RETAIN,
     });
 

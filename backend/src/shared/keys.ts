@@ -11,6 +11,10 @@ export function QA_PK(chatId: string) {
   return `QA#${chatId}`;
 }
 
+export function RATE_PK(chatId: string) {
+  return `RATE#${chatId}`;
+}
+
 export function itemKey(
   category: Category,
   sourceId: string,

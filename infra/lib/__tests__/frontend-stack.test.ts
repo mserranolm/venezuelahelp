@@ -46,4 +46,10 @@ describe("FrontendStack", () => {
       }),
     });
   });
+
+  it("uses the cheapest CloudFront price class (PriceClass_100)", () => {
+    template().hasResourceProperties("AWS::CloudFront::Distribution", {
+      DistributionConfig: Match.objectLike({ PriceClass: "PriceClass_100" }),
+    });
+  });
 });

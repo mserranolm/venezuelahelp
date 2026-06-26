@@ -35,4 +35,26 @@ describe("BotStack", () => {
       },
     });
   });
+
+  it("caps the webhook Lambda with reserved concurrency (abuse ceiling)", () => {
+    template().hasResourceProperties("AWS::Lambda::Function", {
+      Handler: "index.handler",
+      ReservedConcurrentExecutions: 5,
+    });
+  });
+
+  it("retains webhook logs for only 14 days (no infinite log cost)", () => {
+    template().hasResourceProperties("AWS::Logs::LogGroup", {
+      RetentionInDays: 14,
+    });
+  });
+
+  it("throttles the default API stage to bound request rate", () => {
+    template().hasResourceProperties("AWS::ApiGatewayV2::Stage", {
+      DefaultRouteSettings: {
+        ThrottlingRateLimit: 5,
+        ThrottlingBurstLimit: 10,
+      },
+    });
+  });
 });

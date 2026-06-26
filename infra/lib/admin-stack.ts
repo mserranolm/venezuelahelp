@@ -9,6 +9,7 @@ import { Construct } from "constructs";
 import * as cognito from "aws-cdk-lib/aws-cognito";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as lambda from "aws-cdk-lib/aws-lambda";
+import * as logs from "aws-cdk-lib/aws-logs";
 import { NodejsFunction, OutputFormat } from "aws-cdk-lib/aws-lambda-nodejs";
 import {
   HttpApi,
@@ -54,6 +55,11 @@ export class AdminStack extends Stack {
       handler: "handler",
       timeout: Duration.seconds(30),
       memorySize: 512,
+      // Short log retention so CloudWatch storage never grows without bound.
+      logGroup: new logs.LogGroup(this, "AdminFnLogs", {
+        retention: logs.RetentionDays.TWO_WEEKS,
+        removalPolicy: RemovalPolicy.DESTROY,
+      }),
       environment: {
         TABLE_NAME: props.table.tableName,
         SCRAPER_FN_NAME: props.scraperFn.functionName,
@@ -131,6 +137,8 @@ export class AdminStack extends Stack {
       this,
       "AdminDistribution",
       {
+        // Cheapest edge footprint (NA/EU); admin traffic is tiny and internal.
+        priceClass: cloudfront.PriceClass.PRICE_CLASS_100,
         defaultRootObject: "index.html",
         defaultBehavior: {
           origin: origins.S3BucketOrigin.withOriginAccessControl(siteBucket),

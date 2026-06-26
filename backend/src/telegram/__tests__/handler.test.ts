@@ -31,6 +31,7 @@ function deps(over = {}) {
       })),
     },
     qaLogRepo: { append: vi.fn(async () => {}) },
+    rateLimit: { hit: vi.fn(async () => ({ allowed: true, count: 1 })) },
     loadSnapshot: vi.fn(async () => snap),
     askBedrock: vi.fn(async () => ({
       text: "Hay acopio en Chacao.",
@@ -112,6 +113,32 @@ describe("telegram handler", () => {
     );
     expect(d.askBedrock).not.toHaveBeenCalled();
     expect(d.sendMessage).toHaveBeenCalledTimes(1);
+  });
+
+  it("rate-limits a chat: replies with a notice and skips retrieval/bedrock/log", async () => {
+    const d = deps({
+      rateLimit: { hit: vi.fn(async () => ({ allowed: false, count: 11 })) },
+    });
+    const res = await handler(event("@vh_bot dónde hay agua"), d as any);
+    expect(res.statusCode).toBe(200);
+    expect(d.loadSnapshot).not.toHaveBeenCalled();
+    expect(d.askBedrock).not.toHaveBeenCalled();
+    expect(d.qaLogRepo.append).not.toHaveBeenCalled();
+    expect(d.sendMessage).toHaveBeenCalledWith(
+      "TOK",
+      9,
+      expect.stringContaining("muy rápido"),
+    );
+  });
+
+  it("does not consume the rate limit on /start welcome", async () => {
+    const hit = vi.fn(async () => ({ allowed: true, count: 1 }));
+    const d = deps({ rateLimit: { hit } });
+    await handler(
+      event("/start", { chat: { id: 9, type: "private" } }),
+      d as any,
+    );
+    expect(hit).not.toHaveBeenCalled();
   });
 
   it("rejects webhook when secret mismatch (returns 200, no reply)", async () => {
