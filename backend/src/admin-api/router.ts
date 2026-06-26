@@ -89,8 +89,12 @@ export async function route(
         body: { error: "invalid config", issues: parsed.error.issues },
       };
     }
-    await deps.configRepo.put(parsed.data);
-    return { status: 200, body: parsed.data };
+    // Preservamos los campos no editables por este endpoint (p.ej. `enrichment`),
+    // que se ajustan por separado y no deben perderse al guardar la config básica.
+    const current = await deps.configRepo.get();
+    const merged = { ...current, ...parsed.data };
+    await deps.configRepo.put(merged);
+    return { status: 200, body: merged };
   }
 
   // GET /sources
