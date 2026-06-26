@@ -4,7 +4,11 @@ import { RateLimitRepo } from "@/shared/repos/rateLimitRepo";
 import { TgUserRepo } from "@/shared/repos/tgUserRepo";
 import { logger } from "@/shared/logger";
 import { getTelegramToken, getWebhookSecret } from "@/telegram/secret";
-import { getMe, sendMessage as realSend } from "@/telegram/telegramApi";
+import {
+  getMe,
+  sendMessage as realSend,
+  answerCallbackQuery as realAnswer,
+} from "@/telegram/telegramApi";
 import { loadSnapshot as realLoad } from "@/telegram/snapshot";
 import { askBedrock as realAsk } from "@/telegram/bedrock";
 import { retrieve } from "@/telegram/retrieval";
@@ -13,8 +17,19 @@ import {
   shouldRespond,
   extractQuestion,
   isStartCommand,
+  isMenuCommand,
 } from "@/telegram/trigger";
-import type { TgUpdate } from "@/telegram/types";
+import {
+  categoryScreen,
+  homeScreen,
+  locationPrompt,
+  navScreen,
+  LOCATION_ACTIONS,
+  SKIP_LOCATION_TEXT,
+} from "@/telegram/menu";
+import { MenuStateRepo, type MenuState } from "@/telegram/menuState";
+import type { LatLng } from "@/telegram/geo";
+import type { TgCallbackQuery, TgMessage, TgUpdate } from "@/telegram/types";
 
 const FALLBACK =
   "Disculpa, estoy con mucha demanda ahora mismo. Intenta de nuevo en un momento.";
@@ -22,19 +37,8 @@ const NO_DATA =
   "No tengo ese dato en la información del terremoto que tengo disponible.";
 const RATE_LIMITED =
   "Estás enviando preguntas muy rápido. Espera un momento y vuelve a intentar. 🙏";
-const WELCOME = [
-  "👋 ¡Hola! Soy el asistente de VenezuelaHelp.",
-  "",
-  "Reúno información pública sobre el terremoto de Venezuela (25 de junio de 2026) y respondo tus preguntas sobre reportes, personas desaparecidas, centros de acopio, estado de edificios y solicitudes de ayuda.",
-  "",
-  "Solo escríbeme tu pregunta en lenguaje natural. Por ejemplo:",
-  "• ¿Dónde hay centros de acopio en Chacao?",
-  "• ¿Cuántas personas desaparecidas hay reportadas?",
-  "• ¿Qué edificios resultaron afectados en Caracas?",
-  "• ¿Cómo puedo solicitar ayuda?",
-  "",
-  "Te respondo con la información disponible y cito la fuente. Si no tengo el dato, te lo diré.",
-].join("\n");
+
+const FRESH_MS = 60 * 60 * 1000;
 
 let botUsernameCache: string | null = null;
 
@@ -46,15 +50,40 @@ interface Deps {
   qaLogRepo: Pick<QaLogRepo, "append">;
   rateLimit: Pick<RateLimitRepo, "hit">;
   tgUserRepo: Pick<TgUserRepo, "upsert">;
+  menuState: Pick<
+    MenuStateRepo,
+    "get" | "setPending" | "setLocation" | "clearPending"
+  >;
   loadSnapshot: typeof realLoad;
   askBedrock: typeof realAsk;
   sendMessage: typeof realSend;
+  answerCallbackQuery: typeof realAnswer;
 }
 
 async function defaultBotUsername(token: string): Promise<string> {
   if (botUsernameCache) return botUsernameCache;
   botUsernameCache = (await getMe(token)).username;
   return botUsernameCache;
+}
+
+function freshLoc(state: MenuState, now: number): LatLng | undefined {
+  if (state.lastLat == null || state.lastLng == null || !state.lastLocationAt)
+    return undefined;
+  if (now - Date.parse(state.lastLocationAt) > FRESH_MS) return undefined;
+  return { lat: state.lastLat, lng: state.lastLng };
+}
+
+// Lectura de estado tolerante a fallos de DynamoDB: degradar, no romper.
+async function safeGetState(d: Deps, chatId: number): Promise<MenuState> {
+  try {
+    return await d.menuState.get(chatId);
+  } catch (e) {
+    logger.warn("no se pudo leer el estado del menú", {
+      chatId,
+      error: e instanceof Error ? e.message : String(e),
+    });
+    return {};
+  }
 }
 
 export async function handler(
@@ -69,19 +98,19 @@ export async function handler(
     qaLogRepo: deps?.qaLogRepo ?? new QaLogRepo(),
     rateLimit: deps?.rateLimit ?? new RateLimitRepo(),
     tgUserRepo: deps?.tgUserRepo ?? new TgUserRepo(),
+    menuState: deps?.menuState ?? new MenuStateRepo(),
     loadSnapshot: deps?.loadSnapshot ?? realLoad,
     askBedrock: deps?.askBedrock ?? realAsk,
     sendMessage: deps?.sendMessage ?? realSend,
+    answerCallbackQuery: deps?.answerCallbackQuery ?? realAnswer,
   };
 
   let chatId: number | undefined;
   let token: string | undefined;
   try {
     const update = JSON.parse(event.body ?? "{}") as TgUpdate;
-    const msg = update.message;
-    if (!msg || !msg.text) return ok();
-    chatId = msg.chat.id;
 
+    // Verificación del secret: aplica a TODOS los updates (callback incluido).
     const expectedSecret = await d.getWebhookSecret();
     if (expectedSecret) {
       const got = event.headers?.["x-telegram-bot-api-secret-token"];
@@ -90,17 +119,23 @@ export async function handler(
         return ok();
       }
     } else if (process.env.TELEGRAM_REQUIRE_SECRET === "true") {
-      // Falla-cerrado: en producción exigimos el secret. Si SSM no lo entrega
-      // (borrado/ilegible/mal desplegado), rechazamos en vez de aceptar
-      // cualquier webhook forjado. Devolvemos 200 para que Telegram no reintente.
       logger.error("telegram webhook secret required but missing; rejecting");
       return ok();
     }
 
-    if (msg.from?.is_bot) return ok();
+    token = await d.getToken();
 
-    // Registro de usuario (directorio del admin). Aislado: un fallo aquí NO
-    // debe romper la respuesta del bot.
+    // --- Rama 1: pulsación de botón inline ---
+    if (update.callback_query) {
+      return await handleCallback(d, token, update.callback_query);
+    }
+
+    const msg = update.message;
+    if (!msg) return ok();
+    if (msg.from?.is_bot) return ok();
+    chatId = msg.chat.id;
+
+    // Registro de usuario (aislado: un fallo aquí no rompe la respuesta).
     try {
       await d.tgUserRepo.upsert({
         chatId: msg.chat.id,
@@ -117,20 +152,54 @@ export async function handler(
       });
     }
 
-    token = await d.getToken();
+    // --- Rama 2: el usuario compartió su ubicación ---
+    if (msg.location) {
+      return await handleLocation(d, token, msg, chatId);
+    }
+
+    if (!msg.text) return ok();
+
     const botUsername = await d.getBotUsername(token);
     const config = await d.configRepo.get();
     if (!shouldRespond(msg, botUsername, config.botTriggerMode)) return ok();
 
-    // La primera interacción (deep link / botón "Iniciar") o /start no es una
-    // pregunta: damos la bienvenida y explicamos cómo funciona el bot.
-    if (isStartCommand(msg)) {
-      await d.sendMessage(token, chatId, WELCOME);
+    // --- Rama 3a: comandos de menú / bienvenida ---
+    if (isStartCommand(msg) || isMenuCommand(msg)) {
+      const home = homeScreen();
+      await d.sendMessage(token, chatId, home.text, {
+        replyMarkup: home.replyMarkup,
+      });
       return ok();
     }
 
-    // Rate-limit per chat before any expensive work (snapshot read + Bedrock).
-    // Caps a single abuser; the Lambda's reserved concurrency caps the aggregate.
+    // --- Rama 3b: "Ver sin ubicación" (botón del teclado de ubicación) ---
+    if (msg.text === SKIP_LOCATION_TEXT) {
+      const state = await safeGetState(d, chatId);
+      try {
+        await d.menuState.clearPending(chatId);
+      } catch (e) {
+        logger.warn("no se pudo limpiar pendingCategory", {
+          chatId,
+          error: e instanceof Error ? e.message : String(e),
+        });
+      }
+      const cat = state.pendingCategory;
+      if (cat && LOCATION_ACTIONS.has(cat)) {
+        const snap = await d.loadSnapshot();
+        const screen = categoryScreen(cat, snap, undefined);
+        await d.sendMessage(token, chatId, screen.text, {
+          replyMarkup: screen.replyMarkup,
+        });
+      } else {
+        const home = homeScreen();
+        await d.sendMessage(token, chatId, home.text, {
+          replyMarkup: home.replyMarkup,
+        });
+      }
+      return ok();
+    }
+
+    // --- Rama 3c: pregunta libre (RAG + Bedrock, flujo original) ---
     const rl = await d.rateLimit.hit(String(chatId));
     if (!rl.allowed) {
       logger.warn("chat rate limited", { chatId, count: rl.count });
@@ -191,6 +260,110 @@ export async function handler(
     }
     return ok();
   }
+}
+
+async function handleCallback(
+  d: Deps,
+  token: string,
+  cq: TgCallbackQuery,
+): Promise<{ statusCode: number; body: string }> {
+  const chatId = cq.message?.chat.id;
+  try {
+    if (chatId == null) return ok();
+    const data = cq.data ?? "";
+    const nav = navScreen(data);
+    if (nav) {
+      await d.sendMessage(token, chatId, nav.text, {
+        replyMarkup: nav.replyMarkup,
+      });
+    } else if (LOCATION_ACTIONS.has(data)) {
+      const state = await safeGetState(d, chatId);
+      const loc = freshLoc(state, Date.now());
+      if (loc) {
+        const snap = await d.loadSnapshot();
+        const screen = categoryScreen(data, snap, loc);
+        await d.sendMessage(token, chatId, screen.text, {
+          replyMarkup: screen.replyMarkup,
+        });
+      } else {
+        try {
+          await d.menuState.setPending(chatId, data);
+        } catch (e) {
+          logger.warn("no se pudo guardar pendingCategory", {
+            chatId,
+            error: e instanceof Error ? e.message : String(e),
+          });
+        }
+        const prompt = locationPrompt(data);
+        await d.sendMessage(token, chatId, prompt.text, {
+          replyMarkup: prompt.replyMarkup,
+        });
+      }
+    } else {
+      const home = homeScreen();
+      await d.sendMessage(token, chatId, home.text, {
+        replyMarkup: home.replyMarkup,
+      });
+    }
+  } catch (e) {
+    logger.error("error manejando callback", {
+      error: e instanceof Error ? e.message : String(e),
+    });
+  } finally {
+    try {
+      await d.answerCallbackQuery(token, cq.id);
+    } catch (e) {
+      logger.warn("answerCallbackQuery falló", {
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  }
+  return ok();
+}
+
+async function handleLocation(
+  d: Deps,
+  token: string,
+  msg: TgMessage,
+  chatId: number,
+): Promise<{ statusCode: number; body: string }> {
+  const loc = {
+    lat: msg.location!.latitude,
+    lng: msg.location!.longitude,
+  };
+  const state = await safeGetState(d, chatId);
+  try {
+    await d.menuState.setLocation(
+      chatId,
+      loc.lat,
+      loc.lng,
+      new Date().toISOString(),
+    );
+  } catch (e) {
+    logger.warn("no se pudo guardar la ubicación", {
+      chatId,
+      error: e instanceof Error ? e.message : String(e),
+    });
+  }
+  const cat = state.pendingCategory;
+  if (cat && LOCATION_ACTIONS.has(cat)) {
+    const snap = await d.loadSnapshot();
+    const screen = categoryScreen(cat, snap, loc);
+    await d.sendMessage(token, chatId, screen.text, {
+      replyMarkup: screen.replyMarkup,
+    });
+  } else {
+    const home = homeScreen();
+    await d.sendMessage(
+      token,
+      chatId,
+      `📍 Ubicación guardada.\n\n${home.text}`,
+      {
+        replyMarkup: home.replyMarkup,
+      },
+    );
+  }
+  return ok();
 }
 
 async function logQa(
