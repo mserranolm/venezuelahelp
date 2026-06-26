@@ -14,6 +14,25 @@ interface ItemListProps {
   items: Item[];
 }
 
+// Miniatura hotlinkeada a la fuente (Fase 1: no re-hospedamos). Si la imagen
+// falla (link roto, hotlink-protection, CORS) se desmonta sin dejar hueco —
+// degradación elegante. `referrerPolicy=no-referrer` evita filtrar el origen.
+function Thumb({ src, className }: { src: string; className: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return null;
+  return (
+    <img
+      src={src}
+      alt=""
+      className={className}
+      loading="lazy"
+      decoding="async"
+      referrerPolicy="no-referrer"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 function ItemDetail({ item, onClose }: { item: Item; onClose: () => void }) {
   const fecha = formatDateTime(item.firstSeenAt);
   const titleId = "item-detail-title";
@@ -40,6 +59,10 @@ function ItemDetail({ item, onClose }: { item: Item; onClose: () => void }) {
             </span>
           )}
         </div>
+
+        {item.imageUrl && (
+          <Thumb src={item.imageUrl} className={styles.detailImage} />
+        )}
 
         {item.texto && <p className={styles.detailText}>{item.texto}</p>}
 
@@ -81,35 +104,41 @@ export default function ItemList({ items }: ItemListProps) {
               />
 
               <div className={styles.body}>
-                <button
-                  type="button"
-                  className={styles.main}
-                  onClick={() => setSelected(item)}
-                >
-                  <Badge category={item.category} />
-                  <span className={styles.title}>{item.titulo}</span>
-                  {item.texto && (
-                    <span className={styles.text}>{item.texto}</span>
-                  )}
-                </button>
+                <div className={styles.bodyText}>
+                  <button
+                    type="button"
+                    className={styles.main}
+                    onClick={() => setSelected(item)}
+                  >
+                    <Badge category={item.category} />
+                    <span className={styles.title}>{item.titulo}</span>
+                    {item.texto && (
+                      <span className={styles.text}>{item.texto}</span>
+                    )}
+                  </button>
 
-                <div className={styles.meta}>
-                  {item.ubicacion?.nombre && (
+                  <div className={styles.meta}>
+                    {item.ubicacion?.nombre && (
+                      <span className={styles.metaItem}>
+                        <MapPin aria-hidden="true" size={13} weight="fill" />
+                        {item.ubicacion.nombre}
+                      </span>
+                    )}
+                    {fecha && (
+                      <span className={styles.metaItem}>
+                        <Clock aria-hidden="true" size={13} />
+                        {fecha}
+                      </span>
+                    )}
                     <span className={styles.metaItem}>
-                      <MapPin aria-hidden="true" size={13} weight="fill" />
-                      {item.ubicacion.nombre}
+                      <Source sourceId={item.sourceId} />
                     </span>
-                  )}
-                  {fecha && (
-                    <span className={styles.metaItem}>
-                      <Clock aria-hidden="true" size={13} />
-                      {fecha}
-                    </span>
-                  )}
-                  <span className={styles.metaItem}>
-                    <Source sourceId={item.sourceId} />
-                  </span>
+                  </div>
                 </div>
+
+                {item.imageUrl && (
+                  <Thumb src={item.imageUrl} className={styles.rowThumb} />
+                )}
               </div>
 
               <CaretRight
