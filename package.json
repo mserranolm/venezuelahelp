@@ -3,7 +3,8 @@
   "private": true,
   "workspaces": [
     "backend",
-    "infra"
+    "infra",
+    "frontend-public"
   ],
   "scripts": {
     "test": "npm run test --workspaces --if-present",
