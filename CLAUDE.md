@@ -29,6 +29,12 @@ Lee siempre el spec y el plan de la fase activa antes de implementar.
 
 > **Analítica de visitas (beacon).** El frontend público dispara el beacon **una vez por carga** desde un `useEffect(() => sendBeacon(), [])` al montar `frontend-public/src/App.tsx` (`sendBeacon` en `frontend-public/src/track.ts`). Va `POST /api/track` **same-origin vía CloudFront** (sin CORS) → Lambda `TrackFn` → `VisitRepo.record()` (contadores `VSTAT#…` + eventos `VISIT#<fecha>`); el país lo deriva el backend del header `CloudFront-Viewer-Country`. El admin lee con `GET /analytics`. Si la analítica aparece vacía, **verificar que el cliente INVOQUE `sendBeacon()`, no solo lo importe** (fue dead-code una vez, con toda la infra cableada). El público es una sola vista sin router (filtrado client-side), así que el beacon al montar cubre toda visita. <!-- /aprende 2026-06-26 -->
 
+## Fuentes — estado y pendientes
+
+Hoy se scrapean **dos** fuentes (`backend/src/scraper/seed.ts`): `sismovenezuela` (`sismovenezuela.com`) y `terremotovenezuela` (`terremotovenezuela.app`, con desaparecidos vía `/api/missing/map`).
+
+> **`desaparecidosterremotovenezuela.com` — BLOQUEADA por reCAPTCHA v3 (pendiente de acceso).** Es una fuente **distinta** (no comparte backend con `terremotovenezuela.app`; sus desaparecidos no salen en `/api/missing/map`). Su API real es `https://desaparecidos-terremoto-api.theempire.tech/api` (listado en `GET /personas`, campos en español: `nombre`/`edad`/`ubicacion`/`fecha`/`descripcion`/`foto`/`contacto`/`estado`/lat-lng). **Todos** los endpoints de lectura exigen `x-recaptcha-token` (reCAPTCHA v3) verificado contra Google en su backend → **sin conector HTTP simple ni bypass razonable** (mintar el token vía anchor/reload de Google falla con "Invalid domain for site key", y un token desde IP de Lambda tendría score bajo). Es la fuente de los reportes que QA echaba en falta (p.ej. "Robeth Enrique"). **Decisión (2026-06-27): pedir acceso ordenado** al operador **The Empire Tech** (`developer@theempire.tech`, CC `contacto@theempire.tech`) — borrador en `docs/outreach/2026-06-27-solicitud-acceso-theempire.md`. Cuando concedan API key/allowlist/feed: conector `jsonApi` nuevo + registro en `registry.ts`/`seed.ts` + test con fixture + deploy de `VenezuelaHelpScraperStack`. <!-- /aprende 2026-06-27 -->
+
 ## Estructura del repo
 
 ```
