@@ -38,7 +38,7 @@ export default function FilterBar({
             <button
               key={cat}
               type="button"
-              className={`${styles.chip} ${isActive ? styles.chipActive : ""}`}
+              className={styles.chip}
               aria-pressed={isActive}
               onClick={() => onToggle(cat)}
               style={
