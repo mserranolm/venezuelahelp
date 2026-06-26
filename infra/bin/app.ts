@@ -4,7 +4,13 @@ import { ScraperStack } from "../lib/scraper-stack";
 import { BotStack } from "../lib/bot-stack";
 
 const app = new App();
-const env = { region: "us-east-1" };
+// Env explícito desde CDK_DEFAULT_ACCOUNT/REGION (poblado por el CLI o pasado
+// a mano). Evita que los stacks queden "environment-agnostic" y que el deploy
+// falle al no poder resolver la cuenta desde la cadena de credenciales del SDK.
+const env = {
+  account: process.env.CDK_DEFAULT_ACCOUNT,
+  region: process.env.CDK_DEFAULT_REGION ?? "us-east-1",
+};
 const data = new DataStack(app, "VenezuelaHelpDataStack", { env });
 new ScraperStack(app, "VenezuelaHelpScraperStack", {
   env,
