@@ -1,6 +1,7 @@
 import { Stack, StackProps, RemovalPolicy, Duration } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
+import * as iam from "aws-cdk-lib/aws-iam";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as sqs from "aws-cdk-lib/aws-sqs";
 import * as ssm from "aws-cdk-lib/aws-ssm";
@@ -25,6 +26,23 @@ export class DataStack extends Stack {
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       removalPolicy: RemovalPolicy.RETAIN,
     });
+
+    // Grant CloudFront OAC read access to snapshot.json.
+    // Uses an account-scoped wildcard distribution ARN to avoid referencing
+    // FrontendStack's distribution (which would create a cross-stack cycle).
+    this.snapshotBucket.addToResourcePolicy(
+      new iam.PolicyStatement({
+        sid: "AllowCloudFrontReadSnapshot",
+        actions: ["s3:GetObject"],
+        resources: [this.snapshotBucket.arnForObjects("snapshot.json")],
+        principals: [new iam.ServicePrincipal("cloudfront.amazonaws.com")],
+        conditions: {
+          StringEquals: {
+            "AWS:SourceArn": `arn:aws:cloudfront::${this.account}:distribution/*`,
+          },
+        },
+      }),
+    );
 
     this.scraperDlq = new sqs.Queue(this, "ScraperDlq", {
       queueName: "venezuelahelp-scraper-dlq",

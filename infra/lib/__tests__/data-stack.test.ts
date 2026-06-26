@@ -1,6 +1,6 @@
 import { describe, it } from "vitest";
 import { App } from "aws-cdk-lib";
-import { Template } from "aws-cdk-lib/assertions";
+import { Template, Match } from "aws-cdk-lib/assertions";
 import { DataStack } from "../data-stack";
 
 function template() {
@@ -34,6 +34,29 @@ describe("DataStack", () => {
     t.hasResourceProperties("AWS::SSM::Parameter", {
       Name: "/venezuelahelp/table-name",
       Type: "String",
+    });
+  });
+
+  it("snapshot bucket policy grants cloudfront.amazonaws.com s3:GetObject on snapshot.json", () => {
+    template().hasResourceProperties("AWS::S3::BucketPolicy", {
+      PolicyDocument: Match.objectLike({
+        Statement: Match.arrayWith([
+          Match.objectLike({
+            Sid: "AllowCloudFrontReadSnapshot",
+            Action: "s3:GetObject",
+            Principal: Match.objectLike({
+              Service: "cloudfront.amazonaws.com",
+            }),
+            Condition: Match.objectLike({
+              StringEquals: Match.objectLike({
+                // this.account resolves to Fn::Join at synth time — just
+                // verify the key is present (any CloudFront distribution ARN)
+                "AWS:SourceArn": Match.anyValue(),
+              }),
+            }),
+          }),
+        ]),
+      }),
     });
   });
 });
