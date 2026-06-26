@@ -16,7 +16,7 @@ Lee siempre el spec y el plan de la fase activa antes de implementar.
 ## Arquitectura (Opción A — "casi gratis")
 
 - **Scraping programado** (EventBridge cada ~30 min, configurable) → DynamoDB. No se scrapea por mensaje.
-- **RAG "pobre"**: recuperación por palabra clave sobre DynamoDB + LLM barato de Bedrock (**Amazon Nova Lite** por defecto, configurable a Claude Haiku). **Sin base vectorial** (OpenSearch Serverless descartado por costo).
+- **RAG "pobre"**: el bot recupera por palabra clave **sobre el `snapshot.json` de S3** (lo carga en memoria y rankea en `telegram/retrieval.ts`; **no consulta DynamoDB** en tiempo de pregunta) + LLM barato de Bedrock (**Amazon Nova Lite** por defecto, configurable a Claude Haiku). **Sin base vectorial** (OpenSearch Serverless descartado por costo). El ranking infiere la categoría de la pregunta y la prioriza, pondera por campo (título/ubicación > texto) y aplica cuota por categoría; un scoring por mero conteo de keywords producía empates masivos y dejaba fuera las fichas relevantes. <!-- /aprende 2026-06-26 -->
 - **Conectores enchufables** por fuente: `jsonApi` (consume el endpoint JSON real de cada sitio) y `headless` (Playwright, solo fallback).
 - **Frontend público** lee un `snapshot.json` cacheado en S3/CloudFront que el scraper regenera → el tráfico público no pega a Lambda/DynamoDB.
 - Servicios: Lambda, DynamoDB (single-table), S3 + CloudFront (×2 + snapshot), API Gateway HTTP API, Cognito (admin), EventBridge, SSM Parameter Store, Bedrock.
@@ -57,6 +57,8 @@ npm test --workspace @venezuelahelp/backend   # solo backend
 npm run build                                 # compila backend e infra
 cd infra && npx cdk synth  --profile VenezuelaHelp   # genera plantilla (no deploy)
 cd infra && npx cdk deploy --profile VenezuelaHelp   # despliega
+cd infra && npx cdk deploy VenezuelaHelpBotStack --require-approval never   # solo la Lambda del bot (TelegramFn); un cambio de código solo mueve el S3Key, sin tocar IAM <!-- /aprende 2026-06-26 -->
+cd infra && npx cdk diff  VenezuelaHelpBotStack   # ver qué cambiaría antes de desplegar
 ```
 
 ## Convenciones
@@ -74,3 +76,4 @@ cd infra && npx cdk deploy --profile VenezuelaHelp   # despliega
 - Perfil SSO: **`VenezuelaHelp`** (cuenta `720115910277`, región `us-east-1`, rol Admin).
 - Tabla DynamoDB: `VenezuelaHelp`. DLQ scraper: `venezuelahelp-scraper-dlq`. Token de Telegram en SSM SecureString (Fase 3).
 - **Cupos de la cuenta al piso** (cuenta nueva): límite de concurrencia de Lambda = **10** → **no usar `reservedConcurrentExecutions`/provisioned concurrency** (AWS exige dejar ≥10 sin reservar y rechaza la reserva; rompe el deploy). Acotar costo/abuso con throttle de API Gateway + rate-limit por chat + `BudgetStack`. Subir cupos vía AWS Support. <!-- /aprende 2026-06-26 -->
+- **Qué stack desplegar según el cambio:** el **`snapshot.json` lo genera el scraper** — `buildSnapshot` se invoca desde `backend/src/scraper/handler.ts`, **no hay Lambda `public-snapshot` aparte** → un cambio en `public-snapshot/snapshot.ts` se despliega con **`VenezuelaHelpScraperStack`**. El **frontend público** se publica con **`VenezuelaHelpFrontendStack`** (un `BucketDeployment` sube `frontend-public/dist` e invalida CloudFront) → **buildear `frontend-public` antes** (`npm run build --workspace @venezuelahelp/frontend-public`). Tras desplegar un cambio de snapshot, **el `snapshot.json` en S3 sigue viejo hasta el próximo scrape**: forzar la regeneración con `aws lambda invoke --function-name <ScraperFn> --invocation-type Event /dev/null` (async, 202; ~1–2 min). <!-- /aprende 2026-06-26 -->

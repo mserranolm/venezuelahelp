@@ -15,6 +15,15 @@ function truncate(s: string, max: number): string {
 const MAX_TEXT = 280;
 const MAX_LOC = 120;
 
+// Etiqueta de confianza que ve el modelo. "sospechoso" no debería llegar aquí
+// (el retrieval lo excluye), pero si llegara se presenta como no verificado.
+const TRUST_LABEL: Record<string, string> = {
+  verificado: "verificado",
+  corroborado: "corroborado",
+  no_verificado: "no verificado",
+  sospechoso: "no verificado",
+};
+
 export function buildContext(items: PublicItem[]): string {
   if (items.length === 0) return "(sin información relevante en los datos)";
   return items
@@ -23,7 +32,13 @@ export function buildContext(items: PublicItem[]): string {
         ? ` | Ubicación: ${truncate(clean(it.ubicacion.nombre), MAX_LOC)}`
         : "";
       const st = it.status ? ` | Estado: ${clean(it.status)}` : "";
-      return `${i + 1}. [${it.category}] ${clean(it.titulo)} — ${truncate(clean(it.texto), MAX_TEXT)}${loc}${st} | Fuente: ${clean(it.sourceId)}`;
+      // La confianza le dice al modelo cuánta cautela aplicar al citar el dato.
+      const conf = it.trust
+        ? ` | Confianza: ${TRUST_LABEL[it.trust] ?? it.trust}${
+            it.sourcesCount ? ` (${it.sourcesCount} fuentes)` : ""
+          }`
+        : "";
+      return `${i + 1}. [${it.category}] ${clean(it.titulo)} — ${truncate(clean(it.texto), MAX_TEXT)}${loc}${st}${conf} | Fuente: ${clean(it.sourceId)}`;
     })
     .join("\n");
 }

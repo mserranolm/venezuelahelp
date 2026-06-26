@@ -1,14 +1,16 @@
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { ItemRepo } from "@/shared/repos/itemRepo";
+import { ConfigRepo } from "@/shared/repos/configRepo";
 import { SourceRepo } from "@/shared/repos/sourceRepo";
-import { CATEGORIES, type Category, type StoredItem } from "@/shared/types";
+import { enrichItems, type EnrichedItem } from "@/enrichment";
+import { CATEGORIES, type Category } from "@/shared/types";
 
 const s3 = new S3Client({});
 const KEY = "snapshot.json";
 
-type PublicItem = Omit<StoredItem, "raw">;
+type PublicItem = Omit<EnrichedItem, "raw">;
 
-function toPublic({ raw, ...rest }: StoredItem): PublicItem {
+function toPublic({ raw, ...rest }: EnrichedItem): PublicItem {
   return rest;
 }
 
@@ -20,7 +22,8 @@ type PublicSource = { nombre: string; url: string };
 
 interface Deps {
   itemRepo: Pick<ItemRepo, "listByCategory">;
-  sourceRepo: Pick<SourceRepo, "list">;
+  configRepo: Pick<ConfigRepo, "get">;
+  sourceRepo: Pick<SourceRepo, "list" | "listEnabled">;
   s3: Pick<S3Client, "send">;
 }
 
@@ -29,9 +32,20 @@ export async function buildSnapshot(
   deps?: Partial<Deps>,
 ): Promise<{ key: string; count: number }> {
   const itemRepo = (deps?.itemRepo as Deps["itemRepo"]) ?? new ItemRepo();
+  const configRepo =
+    (deps?.configRepo as Deps["configRepo"]) ?? new ConfigRepo();
   const sourceRepo =
     (deps?.sourceRepo as Deps["sourceRepo"]) ?? new SourceRepo();
   const client = (deps?.s3 as Deps["s3"]) ?? s3;
+
+  const cfg = await configRepo.get();
+  // Mapa sourceId → { trustLevel } para el enriquecimiento (fuentes habilitadas).
+  const sourceTrust = new Map(
+    (await sourceRepo.listEnabled()).map((s) => [
+      s.id,
+      { trustLevel: s.trustLevel },
+    ]),
+  );
 
   const categories: Record<Category, PublicItem[]> = {} as Record<
     Category,
@@ -40,10 +54,13 @@ export async function buildSnapshot(
   let count = 0;
   for (const cat of CATEGORIES) {
     const items = await itemRepo.listByCategory(cat);
-    categories[cat] = items.map(toPublic);
-    count += items.length;
+    const enriched = enrichItems(items, cfg.enrichment, sourceTrust);
+    categories[cat] = enriched.map(toPublic);
+    count += enriched.length;
   }
 
+  // Mapa de fuentes (nombre + url) para que el frontend enlace cada ítem a su
+  // fuente original vía `sources[item.sourceId]`.
   const sources: Record<string, PublicSource> = {};
   for (const s of await sourceRepo.list()) {
     sources[s.id] = { nombre: s.nombre, url: s.url };

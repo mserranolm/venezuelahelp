@@ -44,6 +44,36 @@ export interface Source {
   extractHint?: string;
   lastContentHash?: string;
   lastExtractAt?: string;
+  // Nivel de confianza de la fuente. "official" eleva sus ítems a "verificado".
+  // Hoy ninguna fuente lo es; queda listo para Protección Civil/bomberos.
+  trustLevel?: "official";
+}
+
+// Parámetros del enriquecimiento (dedupe + confianza). Viven en CONFIG#GLOBAL
+// para poder ajustarlos sin redeploy.
+export interface EnrichmentConfig {
+  geocerca: { latMin: number; latMax: number; lngMin: number; lngMax: number };
+  blocklist: string[];
+  jaccardThreshold: number;
+  geoCellSize: number;
+  minTextLen: number;
+}
+
+export type TrustLevel =
+  | "verificado"
+  | "corroborado"
+  | "no_verificado"
+  | "sospechoso";
+
+// Marcas derivadas por ítem, calculadas al construir el snapshot. No se
+// persisten en DynamoDB: viajan dentro del snapshot.json.
+export interface ItemEnrichment {
+  clusterKey: string;
+  isCanonical: boolean;
+  dupOf?: string;
+  sourcesCount: number;
+  trust: TrustLevel;
+  trustReasons: string[];
 }
 
 export interface Config {
@@ -51,6 +81,7 @@ export interface Config {
   bedrockModelId: string;
   systemPrompt: string;
   botTriggerMode: "mention" | "command" | "all";
+  enrichment: EnrichmentConfig;
 }
 
 export interface QaLogEntry {
