@@ -78,6 +78,27 @@ export function countBySource(
 }
 
 /**
+ * Build the source list shown in the Hero counter / Footer from the snapshot's
+ * source directory (the configured sources), NOT from the items. This keeps the
+ * public list in sync with the admin: every configured source appears even if
+ * it has no items right now, and stray sourceIds present in items but absent
+ * from the directory never leak in. The item count is attached only to order
+ * the list (sources with data lead) and to display in the footer.
+ */
+export function sourcesForDisplay(
+  sourceIds: string[],
+  items: Item[],
+): { sourceId: string; count: number }[] {
+  const counts = new Map<string, number>();
+  for (const item of items) {
+    counts.set(item.sourceId, (counts.get(item.sourceId) ?? 0) + 1);
+  }
+  return sourceIds
+    .map((sourceId) => ({ sourceId, count: counts.get(sourceId) ?? 0 }))
+    .sort((a, b) => b.count - a.count);
+}
+
+/**
  * Count items by category.
  * Returns an object with all 5 categories initialized to 0,
  * then incremented based on items.

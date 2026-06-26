@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { normalize, flatten, filterItems, countByCategory } from "../filter";
+import {
+  normalize,
+  flatten,
+  filterItems,
+  countByCategory,
+  sourcesForDisplay,
+} from "../filter";
 import type { Category, Item, Snapshot } from "@/types";
 
 describe("filter functions", () => {
@@ -272,6 +278,50 @@ describe("filter functions", () => {
       expect(counts.acopios).toBe(0);
       expect(counts.edificios).toBe(0);
       expect(counts.solicitudes).toBe(0);
+    });
+  });
+
+  describe("sourcesForDisplay", () => {
+    const items: Item[] = [
+      {
+        category: "reportes",
+        sourceId: "a",
+        externalId: "1",
+        titulo: "t",
+        texto: "x",
+      },
+      {
+        category: "reportes",
+        sourceId: "a",
+        externalId: "2",
+        titulo: "t",
+        texto: "x",
+      },
+      {
+        category: "reportes",
+        sourceId: "b",
+        externalId: "3",
+        titulo: "t",
+        texto: "x",
+      },
+    ];
+
+    it("lists every configured source, sorted by item count descending", () => {
+      const result = sourcesForDisplay(["b", "a"], items);
+      expect(result).toEqual([
+        { sourceId: "a", count: 2 },
+        { sourceId: "b", count: 1 },
+      ]);
+    });
+
+    it("includes configured sources with no items (count 0)", () => {
+      const result = sourcesForDisplay(["a", "vacia"], items);
+      expect(result).toContainEqual({ sourceId: "vacia", count: 0 });
+    });
+
+    it("ignores sourceIds present in items but absent from the directory", () => {
+      const result = sourcesForDisplay(["a"], items);
+      expect(result.map((s) => s.sourceId)).toEqual(["a"]);
     });
   });
 });

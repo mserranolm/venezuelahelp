@@ -64,12 +64,13 @@ describe("buildSnapshot", () => {
     expect(body.generatedAt).toBe("2026-06-25T00:00:00Z");
   });
 
-  it("includes a sources map of id -> { nombre, url } so the UI can link each item to its source", async () => {
+  it("includes a sources map of only enabled sources (id -> { nombre, url }) so the public lists exactly the admin's enabled sources", async () => {
     s3Mock.on(PutObjectCommand).resolves({});
     const itemRepo = { listByCategory: vi.fn(async () => []) };
     const srcRepo = {
-      listEnabled: async () => [],
-      list: vi.fn(async () => [
+      // El snapshot construye `sources` desde listEnabled, no desde list: una
+      // fuente deshabilitada no debe aparecer en el público.
+      listEnabled: vi.fn(async () => [
         {
           id: "sismovenezuela",
           nombre: "SismoVenezuela",
@@ -83,6 +84,15 @@ describe("buildSnapshot", () => {
           url: "https://ejemplo.com/terremoto",
           connector: "ai",
           enabled: true,
+        },
+      ]),
+      list: vi.fn(async () => [
+        {
+          id: "deshabilitada",
+          nombre: "Fuente Apagada",
+          url: "https://apagada.example/",
+          connector: "jsonApi",
+          enabled: false,
         },
       ]),
     };
@@ -102,6 +112,7 @@ describe("buildSnapshot", () => {
       nombre: "Portal de Noticias",
       url: "https://ejemplo.com/terremoto",
     });
+    expect(body.sources.deshabilitada).toBeUndefined();
   });
 
   it("incluye marcas de enrichment por ítem en el snapshot", async () => {

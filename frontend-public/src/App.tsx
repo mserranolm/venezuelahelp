@@ -5,7 +5,7 @@ import {
   flatten,
   filterItems,
   countByCategory,
-  countBySource,
+  sourcesForDisplay,
 } from "@/data/filter";
 import { SourcesContext } from "@/data/sources";
 import type { Category } from "@/types";
@@ -116,6 +116,13 @@ export default function App() {
                 const items = flatten(data);
                 const filtered = filterItems(items, query, active);
                 const located = filtered.filter((it) => it.ubicacion != null);
+                // Hero y Footer reflejan el directorio de fuentes del snapshot
+                // (= fuentes configuradas en el admin), no los sourceIds de los
+                // items, para no omitir fuentes sin datos ni colar ids huérfanos.
+                const displaySources = sourcesForDisplay(
+                  Object.keys(data.sources ?? {}),
+                  items,
+                );
 
                 const totalPages = Math.max(
                   1,
@@ -131,7 +138,7 @@ export default function App() {
                   <SourcesContext.Provider value={data.sources}>
                     <Hero
                       total={items.length}
-                      sourceCount={countBySource(items).length}
+                      sourceCount={displaySources.length}
                       generatedAt={data.generatedAt}
                     />
 
@@ -209,7 +216,7 @@ export default function App() {
                     </div>
 
                     <Footer
-                      sources={countBySource(items)}
+                      sources={displaySources}
                       generatedAt={data.generatedAt}
                     />
                   </SourcesContext.Provider>

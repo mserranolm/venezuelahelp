@@ -60,9 +60,12 @@ export async function buildSnapshot(
   }
 
   // Mapa de fuentes (nombre + url) para que el frontend enlace cada ítem a su
-  // fuente original vía `sources[item.sourceId]`.
+  // fuente original vía `sources[item.sourceId]` y para listar las fuentes en
+  // el Hero/Footer públicos. Solo fuentes habilitadas: al deshabilitar una en
+  // el admin desaparece del público, y los sourceIds huérfanos (sin SOURCE#)
+  // no aparecen como fuentes.
   const sources: Record<string, PublicSource> = {};
-  for (const s of await sourceRepo.list()) {
+  for (const s of await sourceRepo.listEnabled()) {
     sources[s.id] = { nombre: s.nombre, url: s.url };
   }
 
