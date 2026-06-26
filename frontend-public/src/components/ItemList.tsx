@@ -85,69 +85,68 @@ export default function ItemList({ items }: ItemListProps) {
           const delayIndex = Math.min(index, MAX_STAGGER);
           const fecha = formatDateShort(item.firstSeenAt);
           const meta = CATEGORY_META[item.category];
-          const TypeIcon = meta.icon;
           const colorVar = `var(${meta.colorVar})`;
 
           return (
             <li
               key={key}
-              className={styles.card}
+              className={styles.row}
               style={
                 {
                   "--stagger-i": delayIndex,
-                  "--row-tint": colorVar,
                 } as React.CSSProperties
               }
             >
-              <button
-                type="button"
-                className={styles.cardMain}
-                onClick={() => setSelected(item)}
-              >
-                {/* Header (solid category color): tipo + título en blanco */}
-                <span className={styles.cardHeader}>
-                  <span className={styles.cardHeadRow}>
-                    <span className={styles.cardType}>
-                      <TypeIcon size={14} weight="fill" aria-hidden="true" />
-                      {meta.label}
+              <span
+                className={styles.dot}
+                style={{ color: colorVar }}
+                aria-hidden="true"
+              />
+
+              <div className={styles.body}>
+                <div className={styles.bodyText}>
+                  <button
+                    type="button"
+                    className={styles.main}
+                    onClick={() => setSelected(item)}
+                  >
+                    <Badge category={item.category} />
+                    <span className={styles.title}>{item.titulo}</span>
+                    {item.texto && (
+                      <span className={styles.text}>{item.texto}</span>
+                    )}
+                  </button>
+
+                  <div className={styles.meta}>
+                    {item.ubicacion?.nombre && (
+                      <span className={styles.metaItem}>
+                        <MapPin aria-hidden="true" size={13} weight="fill" />
+                        {item.ubicacion.nombre}
+                      </span>
+                    )}
+                    {fecha && (
+                      <span className={styles.metaItem}>
+                        <Clock aria-hidden="true" size={13} />
+                        {fecha}
+                      </span>
+                    )}
+                    <span className={styles.metaItem}>
+                      <Source sourceId={item.sourceId} />
                     </span>
-                    <CaretRight
-                      className={styles.chevron}
-                      aria-hidden="true"
-                      size={16}
-                    />
-                  </span>
-                  <span className={styles.cardTitle}>{item.titulo}</span>
-                </span>
+                  </div>
+                </div>
 
                 {item.imageUrl && (
-                  <Thumb src={item.imageUrl} className={styles.cardThumb} />
+                  <Thumb src={item.imageUrl} className={styles.rowThumb} />
                 )}
-
-                {/* Body (blanco): detalle */}
-                <span className={styles.cardBody}>
-                  {item.texto && (
-                    <span className={styles.cardText}>{item.texto}</span>
-                  )}
-                  {item.ubicacion?.nombre && (
-                    <span className={styles.cardLoc}>
-                      <MapPin aria-hidden="true" size={13} weight="fill" />
-                      {item.ubicacion.nombre}
-                    </span>
-                  )}
-                </span>
-              </button>
-
-              {/* Footer (blanco): fecha + fuente */}
-              <div className={styles.cardFoot}>
-                {fecha && (
-                  <span className={styles.cardDate}>
-                    <Clock aria-hidden="true" size={13} />
-                    {fecha}
-                  </span>
-                )}
-                <Source sourceId={item.sourceId} />
               </div>
+
+              <CaretRight
+                className={styles.go}
+                aria-hidden="true"
+                size={18}
+                weight="bold"
+              />
             </li>
           );
         })}

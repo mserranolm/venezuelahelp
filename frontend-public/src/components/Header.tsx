@@ -20,24 +20,42 @@ export default function Header() {
     <header className={styles.header}>
       <div className={styles.inner}>
         <a href="#/" className={styles.wordmark} aria-label="VenezuelaHelp">
-          <span className={styles.brandVe}>Venezuela</span>
-          <span className={styles.brandHelp}>Help</span>
+          <span className={styles.mark} aria-hidden="true">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M2 12 h3 l2 -7 l4 14 l3 -10 l2 5 h6" />
+            </svg>
+          </span>
+          <span className={styles.name}>
+            Venezuela<b>Help</b>
+          </span>
         </a>
 
-        {/* Desktop nav */}
+        {/* Desktop nav — only secondary links; hidden on mobile */}
         <nav className={styles.nav} aria-label="Principal">
           <a href="#/quienes-somos" className={styles.navLink}>
             ¿Quiénes somos?
           </a>
-          <a
-            href={TELEGRAM_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.cta}
-          >
-            Preguntar por Telegram
-          </a>
         </nav>
+
+        {/* CTA — always visible at every viewport width */}
+        <a
+          href={TELEGRAM_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={styles.cta}
+        >
+          <span className={styles.ctaFull}>Preguntar por Telegram</span>
+          <span className={styles.ctaShort}>Telegram</span>
+        </a>
 
         {/* Mobile menu trigger */}
         <button
@@ -55,7 +73,7 @@ export default function Header() {
         </button>
       </div>
 
-      {/* Mobile dropdown */}
+      {/* Mobile dropdown — Telegram CTA already visible above, so only nav links here */}
       {open && (
         <div className={styles.menuPanel}>
           <a
@@ -64,15 +82,6 @@ export default function Header() {
             onClick={() => setOpen(false)}
           >
             ¿Quiénes somos?
-          </a>
-          <a
-            href={TELEGRAM_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.menuCta}
-            onClick={() => setOpen(false)}
-          >
-            Preguntar por Telegram
           </a>
         </div>
       )}

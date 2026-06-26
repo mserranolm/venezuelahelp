@@ -72,7 +72,6 @@ export default function FilterBar({
           const meta = CATEGORY_META[cat];
           const isActive = active.has(cat);
           const colorVar = `var(${meta.colorVar})`;
-          const Icon = meta.icon;
           return (
             <button
               key={cat}
@@ -82,12 +81,7 @@ export default function FilterBar({
               onClick={() => onToggle(cat)}
               style={{ "--chip-color": colorVar } as React.CSSProperties}
             >
-              <Icon
-                className={styles.icon}
-                weight={isActive ? "fill" : "regular"}
-                aria-hidden="true"
-                size={16}
-              />
+              <span className={styles.chipDot} aria-hidden="true" />
               <span className={styles.chipLabel}>{meta.label}</span>
               <span className={styles.chipCount}>{counts[cat]}</span>
             </button>

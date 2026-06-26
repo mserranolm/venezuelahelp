@@ -1,25 +1,10 @@
-/* ItemList — clickable rows opening a detail modal. DESIGN.md compliant. */
-
-/* Grid: 1 col mobile → 2 col tablet → 3 col web */
+/* ItemList — filas densas editoriales. Color = punto + badge. */
 .list {
   list-style: none;
-  margin: 0;
+  margin: 0 auto;
   padding: 0;
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
-}
-
-@media (min-width: 680px) {
-  .list {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (min-width: 1024px) {
-  .list {
-    grid-template-columns: repeat(3, 1fr);
-  }
+  max-width: var(--readw);
+  border-top: 1px solid var(--border);
 }
 
 @keyframes rowIn {
@@ -33,43 +18,61 @@
   }
 }
 
-/* ── Card ───────────────────────────────────────────────────── */
+.row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 14px;
+  align-items: start;
+  padding: 18px 8px;
+  border-bottom: 1px solid var(--border);
+  transition: background 150ms ease;
+  animation: rowIn 320ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: calc(20ms + var(--stagger-i, 0) * 40ms);
+}
 
-.card {
+.row:hover {
+  background: var(--surface);
+}
+
+.dot {
+  margin-top: 7px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow:
+    0 0 0 3px var(--bg),
+    0 0 0 4px currentColor;
+}
+
+.body {
+  min-width: 0;
   display: flex;
-  flex-direction: column;
-  background: var(--bg); /* white body/footer */
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  overflow: hidden;
-  opacity: 1;
-  animation: rowIn 260ms cubic-bezier(0.165, 0.84, 0.44, 1) backwards;
-  animation-delay: calc(60ms + var(--stagger-i, 0) * 40ms);
-  transition:
-    border-color 140ms ease,
-    box-shadow 140ms ease;
+  gap: 14px;
+  align-items: flex-start;
 }
 
-.card:hover {
-  border-color: color-mix(in oklab, var(--row-tint) 45%, var(--border));
-  box-shadow: 0 4px 14px color-mix(in oklab, var(--row-tint) 20%, transparent);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .card {
-    animation: none;
-    opacity: 1;
-    transform: none;
-    transition: none;
-  }
-}
-
-/* Clickable header + body (opens the detail modal) */
-.cardMain {
+.bodyText {
+  min-width: 0;
   flex: 1;
-  width: 100%;
+}
+
+/* Miniatura hotlinkeada de la fuente, a la derecha de la fila densa. */
+.rowThumb {
+  flex: none;
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: var(--surface-2, #f1f1f1);
+}
+
+.main {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  width: 100%;
   margin: 0;
   padding: 0;
   text-align: left;
@@ -80,135 +83,82 @@
   cursor: pointer;
 }
 
-.cardMain:focus-visible {
+.main:focus-visible {
   outline: 2px solid var(--focus-ring);
-  outline-offset: -2px;
+  outline-offset: 2px;
+  border-radius: 6px;
 }
 
-/* ── Header (accent background) ─────────────────────────────── */
+.title {
+  font-size: 1.06rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink-strong);
+  line-height: 1.3;
+}
 
-.cardHeader {
+.text {
+  color: var(--ink);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.meta {
   display: flex;
-  flex-direction: column;
-  gap: 7px;
-  padding: 11px 14px;
-  /* Solid, strong category color (no transparency) */
-  background: var(--row-tint);
-}
-
-.card:hover .cardHeader {
-  background: color-mix(in oklab, var(--row-tint) 88%, black);
-}
-
-.cardHeadRow {
-  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  gap: 6px 14px;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 0.82rem;
 }
 
-/* Type label (white on the colored header) */
-.cardType {
+.metaItem {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 0.6875rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #fff;
 }
 
-.cardType svg {
-  color: #fff;
+.metaItem svg {
   flex-shrink: 0;
+  color: var(--border-strong);
 }
 
-.chevron {
-  color: rgba(255, 255, 255, 0.85);
-  flex-shrink: 0;
+.go {
+  align-self: center;
+  color: var(--border-strong);
+  transition:
+    color 150ms ease,
+    transform 150ms ease;
+  flex: none;
 }
 
-/* Title in white over the strong header color */
-.cardTitle {
-  display: block;
-  font-size: 1.0625rem;
-  font-weight: 700;
-  line-height: 1.3;
-  letter-spacing: -0.01em;
-  color: #fff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+.row:hover .go {
+  color: var(--primary);
+  transform: translateX(2px);
 }
 
-/* ── Thumbnail (hotlinked, below the colored header) ────────── */
-
-.cardThumb {
-  display: block;
-  width: 100%;
-  height: 150px;
-  object-fit: cover;
-  background: var(--surface-2, #f1f1f1);
+@media (max-width: 560px) {
+  .row {
+    grid-template-columns: auto 1fr;
+  }
+  .go {
+    display: none;
+  }
 }
 
-/* ── Body (white) ───────────────────────────────────────────── */
-
-.cardBody {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 12px 14px;
-}
-
-.cardText {
-  display: -webkit-box;
-  -webkit-line-clamp: 5;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  font-size: 0.9rem;
-  color: var(--ink);
-  line-height: 1.5;
-}
-
-.cardLoc {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 2px;
-  font-size: 0.8125rem;
-  color: var(--muted);
-  font-weight: 500;
-}
-
-.cardLoc svg {
-  color: color-mix(in oklab, var(--row-tint) 60%, var(--border-strong));
-  flex-shrink: 0;
-}
-
-/* ── Footer (white) ─────────────────────────────────────────── */
-
-.cardFoot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px 12px;
-  flex-wrap: wrap;
-  padding: 10px 14px;
-  /* separator line above the footer */
-  border-top: 1px solid var(--border);
-}
-
-.cardDate {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.75rem;
-  color: var(--muted);
-  font-weight: 500;
-}
-
-.cardDate svg {
-  flex-shrink: 0;
+@media (prefers-reduced-motion: reduce) {
+  .row {
+    animation: none;
+    transition: none;
+  }
+  .row:hover .go {
+    transition: none;
+  }
 }
 
 /* ── Detail modal content ───────────────────────────────────── */

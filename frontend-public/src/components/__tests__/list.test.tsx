@@ -141,6 +141,13 @@ describe("ItemList", () => {
     await user.click(screen.getByRole("button", { name: /cerrar/i }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
+
+  it("renders a category badge label per row", () => {
+    render(<ItemList items={items} />);
+    // El Badge muestra la etiqueta de la categoría (p. ej. "Reportes")
+    expect(screen.getAllByText("Reportes").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Desaparecidos").length).toBeGreaterThan(0);
+  });
 });
 
 // --------------- Empty ---------------
