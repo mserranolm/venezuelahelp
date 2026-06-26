@@ -5,11 +5,20 @@ export interface EmergencyContact {
   phone: string;
 }
 
-// TODO(dueño): confirmar números oficiales vigentes en Venezuela
-// (Bomberos, Cruz Roja Venezolana, Protección Civil / PCNGRD) y añadirlos aquí
-// en formato internacional (+58...) para que Telegram los haga "tap para llamar".
+// Números oficiales nacionales de Venezuela (verificados 2026-06-26).
+// El 911 (SIGAE-911) cubre policía, bomberos y ambulancia en todo el país; las
+// líneas por operadora son alternativas equivalentes. Se muestran en formato de
+// marcado local porque la audiencia llama desde teléfonos venezolanos.
+// Pueden existir variantes por estado; estos son los de alcance nacional.
 export const EMERGENCY_CONTACTS: EmergencyContact[] = [
-  { label: "Emergencias (nacional)", phone: "911" },
+  { label: "Emergencias — policía, bomberos y ambulancia", phone: "911" },
+  {
+    label: "Emergencias por operadora",
+    phone: "171 (CANTV) · *1 (Movilnet) · 112 (Digitel)",
+  },
+  { label: "Protección Civil (PCNGRD)", phone: "0800-558-8427" },
+  { label: "Cruz Roja Venezolana — Caracas", phone: "0212-571-4380" },
+  { label: "Cruz Roja Venezolana — WhatsApp", phone: "0424-219-0429" },
 ];
 
 export interface MonitoringLink {
@@ -17,9 +26,12 @@ export interface MonitoringLink {
   url: string;
 }
 
-// TODO(dueño): cuentas/páginas de X de monitoreo oficial de rescates en
-// tiempo real (p.ej. Protección Civil, Cruz Roja). Deben ser URLs https.
-export const MONITORING_LINKS: MonitoringLink[] = [];
+// Cuentas oficiales de monitoreo en tiempo real (verificadas 2026-06-26).
+// FUNVISIS es el servicio sismológico oficial: la fuente clave para un terremoto.
+export const MONITORING_LINKS: MonitoringLink[] = [
+  { label: "FUNVISIS — sismos en vivo", url: "https://x.com/SomosFunvisis" },
+  { label: "Cruz Roja Venezolana", url: "https://x.com/cruzrojave" },
+];
 
 export function renderEmergency(): {
   text: string;
