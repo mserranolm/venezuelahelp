@@ -111,4 +111,30 @@ describe("handler", () => {
     });
     expect(JSON.parse(result.body)).toEqual({ error: "internal error" });
   });
+
+  it("POST /scrape calls lambda.send with InvokeCommand via real router", async () => {
+    process.env.SCRAPER_FN_NAME = "test-scraper-fn";
+    try {
+      const mockSend = vi.fn().mockResolvedValue({});
+      const handler = await load();
+      const event = {
+        requestContext: { http: { method: "POST" } },
+        rawPath: "/scrape",
+      };
+
+      const result = await handler(event, { lambda: { send: mockSend } });
+
+      expect(result.statusCode).toBe(202);
+      expect(mockSend).toHaveBeenCalledTimes(1);
+      const invokeCmd = mockSend.mock.calls[0][0] as {
+        input: Record<string, unknown>;
+      };
+      expect(invokeCmd.input).toMatchObject({
+        FunctionName: "test-scraper-fn",
+        InvocationType: "Event",
+      });
+    } finally {
+      delete process.env.SCRAPER_FN_NAME;
+    }
+  });
 });

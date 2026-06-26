@@ -57,11 +57,16 @@ describe("AdminStack", () => {
     });
   });
 
-  it("creates routes protected with JWT", () => {
-    template().hasResourceProperties("AWS::ApiGatewayV2::Route", {
-      RouteKey: Match.anyValue(),
-      AuthorizationType: "JWT",
-    });
+  it("creates exactly 6 routes, all protected with JWT", () => {
+    const t = template();
+    t.resourceCountIs("AWS::ApiGatewayV2::Route", 6);
+    const routes = t.findResources("AWS::ApiGatewayV2::Route");
+    for (const [logicalId, resource] of Object.entries(routes)) {
+      expect(
+        resource.Properties.AuthorizationType,
+        `Route ${logicalId} must use JWT auth`,
+      ).toBe("JWT");
+    }
   });
 
   it("outputs ApiUrl, UserPoolId, UserPoolClientId", () => {

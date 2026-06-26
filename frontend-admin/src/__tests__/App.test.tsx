@@ -225,6 +225,29 @@ describe("App (integration)", () => {
     });
   });
 
+  it("shows error banner when putConfig rejects", async () => {
+    const { deps, api } = buildDeps(() => Promise.resolve("mock-token"));
+    api.putConfig = vi.fn().mockRejectedValue(new Error("HTTP 400"));
+    const user = userEvent.setup();
+    render(<App deps={deps} />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("navigation")).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: /Config/i }));
+    const saveButton = await screen.findByRole("button", {
+      name: /Guardar cambios/i,
+    });
+    await user.click(saveButton);
+
+    await waitFor(() => {
+      const alert = screen.getByRole("alert");
+      expect(alert).toBeInTheDocument();
+      expect(alert).toHaveTextContent("No se pudo guardar la configuración.");
+    });
+  });
+
   it("sign-out calls signOutUser and reverts to Login screen", async () => {
     const { deps } = buildDeps(() => Promise.resolve("mock-token"));
     const user = userEvent.setup();

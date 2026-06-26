@@ -73,6 +73,7 @@ export class AdminStack extends Stack {
     });
 
     const api = new HttpApi(this, "AdminApi", {
+      defaultAuthorizer: authorizer,
       corsPreflight: {
         allowOrigins: ["*"],
         allowMethods: [
@@ -93,37 +94,31 @@ export class AdminStack extends Stack {
       path: "/config",
       methods: [HttpMethod.GET],
       integration,
-      authorizer,
     });
     api.addRoutes({
       path: "/config",
       methods: [HttpMethod.PUT],
       integration,
-      authorizer,
     });
     api.addRoutes({
       path: "/sources",
       methods: [HttpMethod.GET],
       integration,
-      authorizer,
     });
     api.addRoutes({
       path: "/sources/{id}",
       methods: [HttpMethod.PATCH],
       integration,
-      authorizer,
     });
     api.addRoutes({
       path: "/scrape",
       methods: [HttpMethod.POST],
       integration,
-      authorizer,
     });
     api.addRoutes({
       path: "/stats",
       methods: [HttpMethod.GET],
       integration,
-      authorizer,
     });
 
     // ── Admin SPA Hosting ─────────────────────────────────────────────────────
