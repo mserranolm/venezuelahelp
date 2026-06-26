@@ -131,18 +131,22 @@
    set inline per chip). Mixed in oklab so the hue stays true. */
 .chip:hover {
   background: color-mix(in oklab, var(--chip-color) 12%, var(--bg));
-  border-color: color-mix(in oklab, var(--chip-color) 45%, var(--border-strong));
+  border-color: color-mix(
+    in oklab,
+    var(--chip-color) 45%,
+    var(--border-strong)
+  );
 }
 
-/* Selected: stronger tint + category-colored border + darker category text */
+/* Selected: primary tint background + primary border */
 .chipActive {
-  background: color-mix(in oklab, var(--chip-color) 18%, var(--bg));
-  border-color: var(--chip-color);
-  color: color-mix(in oklab, var(--chip-color) 55%, var(--ink-strong));
+  background: var(--primary-tint);
+  border-color: var(--primary);
+  color: var(--primary-strong);
 }
 
 .chipActive:hover {
-  background: color-mix(in oklab, var(--chip-color) 26%, var(--bg));
+  background: color-mix(in oklab, var(--primary-tint) 80%, var(--primary));
 }
 
 .chip:active {
@@ -154,10 +158,12 @@
   outline-offset: 2px;
 }
 
-/* Icon always wears the category color, regardless of text color */
-.icon {
-  flex-shrink: 0;
-  color: var(--chip-color);
+.chipDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--chip-color);
 }
 
 .chipLabel {
