@@ -59,6 +59,34 @@ describe("ItemList", () => {
     }
   });
 
+  it("links the item title to the source URL when a matching source is provided", () => {
+    const sources = {
+      tg: { nombre: "Telegram", url: "https://t.me/canal/101" },
+    };
+    render(<ItemList items={[items[0]]} sources={sources} />);
+    const link = screen.getByRole("link", { name: items[0].titulo });
+    expect(link).toHaveAttribute("href", "https://t.me/canal/101");
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", expect.stringContaining("noopener"));
+  });
+
+  it("shows the human-readable source name instead of the raw sourceId", () => {
+    const sources = {
+      tg: { nombre: "Telegram", url: "https://t.me/canal/101" },
+    };
+    render(<ItemList items={[items[0]]} sources={sources} />);
+    expect(screen.getByText("Telegram")).toBeInTheDocument();
+    expect(screen.queryByText("tg")).not.toBeInTheDocument();
+  });
+
+  it("renders the title as plain text (no link) when the source is unknown", () => {
+    render(<ItemList items={[items[0]]} sources={{}} />);
+    expect(
+      screen.queryByRole("link", { name: items[0].titulo }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText(items[0].titulo)).toBeInTheDocument();
+  });
+
   it("renders ubicacion.nombre when present", () => {
     render(<ItemList items={items} />);
     expect(screen.getByText("El Silencio, Caracas")).toBeInTheDocument();

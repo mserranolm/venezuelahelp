@@ -21,7 +21,15 @@ export interface Item {
   status?: string;
 }
 
+export interface Source {
+  nombre: string;
+  url: string;
+}
+
 export interface Snapshot {
   generatedAt: string;
   categories: Record<Category, Item[]>;
+  // Mapa sourceId -> fuente, para enlazar cada ítem a su sitio de origen.
+  // Opcional: snapshots viejos (pre-feature) no lo traen.
+  sources?: Record<string, Source>;
 }

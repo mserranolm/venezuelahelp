@@ -62,6 +62,27 @@
   line-height: 1.4;
 }
 
+/* Titular como enlace a la fuente: hereda el aspecto del título y solo se
+   subraya al pasar el cursor, para no gritar "link" en cada fila. */
+.tituloLink {
+  display: inline-block;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 120ms ease;
+}
+
+.tituloLink:hover {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.tituloLink:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
 .texto {
   margin: 0;
   font-size: 0.875rem;

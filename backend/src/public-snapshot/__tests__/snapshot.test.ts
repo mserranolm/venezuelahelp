@@ -33,6 +33,7 @@ describe("buildSnapshot", () => {
     };
     const res = await buildSnapshot("2026-06-25T00:00:00Z", {
       itemRepo: itemRepo as any,
+      sourceRepo: { list: vi.fn(async () => []) } as any,
     });
     expect(res.key).toBe("snapshot.json");
     expect(res.count).toBe(1);
@@ -42,5 +43,43 @@ describe("buildSnapshot", () => {
     expect(body.categories.reportes[0]).not.toHaveProperty("raw");
     expect(body.categories.reportes[0].titulo).toBe("t");
     expect(body.generatedAt).toBe("2026-06-25T00:00:00Z");
+  });
+
+  it("includes a sources map of id -> { nombre, url } so the UI can link each item to its source", async () => {
+    s3Mock.on(PutObjectCommand).resolves({});
+    const itemRepo = { listByCategory: vi.fn(async () => []) };
+    const sourceRepo = {
+      list: vi.fn(async () => [
+        {
+          id: "sismovenezuela",
+          nombre: "SismoVenezuela",
+          url: "https://www.sismovenezuela.com/",
+          connector: "jsonApi",
+          enabled: true,
+        },
+        {
+          id: "noticias-ai",
+          nombre: "Portal de Noticias",
+          url: "https://ejemplo.com/terremoto",
+          connector: "ai",
+          enabled: true,
+        },
+      ]),
+    };
+    await buildSnapshot("2026-06-25T00:00:00Z", {
+      itemRepo: itemRepo as any,
+      sourceRepo: sourceRepo as any,
+    });
+    const body = JSON.parse(
+      s3Mock.commandCalls(PutObjectCommand)[0].args[0].input.Body as string,
+    );
+    expect(body.sources.sismovenezuela).toEqual({
+      nombre: "SismoVenezuela",
+      url: "https://www.sismovenezuela.com/",
+    });
+    expect(body.sources["noticias-ai"]).toEqual({
+      nombre: "Portal de Noticias",
+      url: "https://ejemplo.com/terremoto",
+    });
   });
 });

@@ -74,7 +74,7 @@ export default function App() {
                         className={styles.listSection}
                         aria-label="Lista de elementos"
                       >
-                        <ItemList items={filtered} />
+                        <ItemList items={filtered} sources={data.sources} />
                       </section>
                       <section
                         className={styles.mapSection}
