@@ -2,6 +2,7 @@ import { App } from "aws-cdk-lib";
 import { DataStack } from "../lib/data-stack";
 import { ScraperStack } from "../lib/scraper-stack";
 import { BotStack } from "../lib/bot-stack";
+import { FrontendStack } from "../lib/frontend-stack";
 
 const app = new App();
 // Env explícito desde CDK_DEFAULT_ACCOUNT/REGION (poblado por el CLI o pasado
@@ -21,5 +22,9 @@ new ScraperStack(app, "VenezuelaHelpScraperStack", {
 new BotStack(app, "VenezuelaHelpBotStack", {
   env,
   table: data.table,
+  snapshotBucket: data.snapshotBucket,
+});
+new FrontendStack(app, "VenezuelaHelpFrontendStack", {
+  env,
   snapshotBucket: data.snapshotBucket,
 });
