@@ -16,7 +16,7 @@ import ItemList from "@/components/ItemList";
 import Pagination from "@/components/Pagination";
 import ViewToggle, { type View } from "@/components/ViewToggle";
 import Footer from "@/components/Footer";
-import SourceBanner from "@/components/SourceBanner";
+import Hero from "@/components/Hero";
 import AboutPage from "@/components/AboutPage";
 import { Loading, Empty, ErrorState } from "@/components/States";
 
@@ -105,109 +105,116 @@ export default function App() {
           <>
             {loading && <Loading />}
 
-        {error && !loading && <ErrorState onRetry={() => location.reload()} />}
+            {error && !loading && (
+              <ErrorState onRetry={() => location.reload()} />
+            )}
 
-        {data &&
-          !loading &&
-          !error &&
-          (() => {
-            const items = flatten(data);
-            const filtered = filterItems(items, query, active);
-            const located = filtered.filter((it) => it.ubicacion != null);
+            {data &&
+              !loading &&
+              !error &&
+              (() => {
+                const items = flatten(data);
+                const filtered = filterItems(items, query, active);
+                const located = filtered.filter((it) => it.ubicacion != null);
 
-            const totalPages = Math.max(
-              1,
-              Math.ceil(filtered.length / PAGE_SIZE),
-            );
-            const currentPage = Math.min(page, totalPages);
-            const pageItems = filtered.slice(
-              (currentPage - 1) * PAGE_SIZE,
-              currentPage * PAGE_SIZE,
-            );
+                const totalPages = Math.max(
+                  1,
+                  Math.ceil(filtered.length / PAGE_SIZE),
+                );
+                const currentPage = Math.min(page, totalPages);
+                const pageItems = filtered.slice(
+                  (currentPage - 1) * PAGE_SIZE,
+                  currentPage * PAGE_SIZE,
+                );
 
-            return (
-              <SourcesContext.Provider value={data.sources}>
-                <SourceBanner
-                  sources={countBySource(items)}
-                  generatedAt={data.generatedAt}
-                />
-
-                <div className={styles.container}>
-                  <div className={styles.controls} ref={controlsRef}>
-                    <FilterBar
-                      query={query}
-                      onQuery={setQuery}
-                      active={active}
-                      onToggle={onToggle}
-                      counts={countByCategory(items)}
-                      resultCount={filtered.length}
+                return (
+                  <SourcesContext.Provider value={data.sources}>
+                    <Hero
                       total={items.length}
-                      onClear={onClear}
+                      sourceCount={countBySource(items).length}
+                      generatedAt={data.generatedAt}
                     />
 
-                    {filtered.length > 0 && (
-                      <div className={styles.subControls}>
-                        <ViewToggle
-                          view={view}
-                          onChange={setView}
-                          mapCount={located.length}
+                    <div className={styles.container}>
+                      <div
+                        className={styles.controls}
+                        id="resultados"
+                        ref={controlsRef}
+                      >
+                        <FilterBar
+                          query={query}
+                          onQuery={setQuery}
+                          active={active}
+                          onToggle={onToggle}
+                          counts={countByCategory(items)}
+                          resultCount={filtered.length}
+                          total={items.length}
+                          onClear={onClear}
                         />
-                        {view === "lista" && totalPages > 1 && (
-                          <Pagination
-                            page={currentPage}
-                            totalPages={totalPages}
-                            onChange={onChangePage}
-                            label="Paginación de resultados (arriba)"
-                            compact
-                          />
+
+                        {filtered.length > 0 && (
+                          <div className={styles.subControls}>
+                            <ViewToggle
+                              view={view}
+                              onChange={setView}
+                              mapCount={located.length}
+                            />
+                            {view === "lista" && totalPages > 1 && (
+                              <Pagination
+                                page={currentPage}
+                                totalPages={totalPages}
+                                onChange={onChangePage}
+                                label="Paginación de resultados (arriba)"
+                                compact
+                              />
+                            )}
+                          </div>
                         )}
                       </div>
-                    )}
-                  </div>
 
-                  {filtered.length === 0 ? (
-                    <Empty query={query} />
-                  ) : (
-                    <div ref={listTopRef} className={styles.results}>
-                      {view === "lista" ? (
-                        <section aria-label="Lista de elementos">
-                          <ItemList items={pageItems} />
-                          {totalPages > 1 && (
-                            <Pagination
-                              page={currentPage}
-                              totalPages={totalPages}
-                              onChange={onChangePage}
-                              label="Paginación de resultados (abajo)"
-                            />
-                          )}
-                        </section>
+                      {filtered.length === 0 ? (
+                        <Empty query={query} />
                       ) : (
-                        <section
-                          className={styles.mapSection}
-                          aria-label="Mapa de ubicaciones"
-                        >
-                          <Suspense
-                            fallback={
-                              <div className={styles.mapLoading}>
-                                Cargando mapa…
-                              </div>
-                            }
-                          >
-                            <MapView items={filtered} />
-                          </Suspense>
-                        </section>
+                        <div ref={listTopRef} className={styles.results}>
+                          {view === "lista" ? (
+                            <section aria-label="Lista de elementos">
+                              <ItemList items={pageItems} />
+                              {totalPages > 1 && (
+                                <Pagination
+                                  page={currentPage}
+                                  totalPages={totalPages}
+                                  onChange={onChangePage}
+                                  label="Paginación de resultados (abajo)"
+                                />
+                              )}
+                            </section>
+                          ) : (
+                            <section
+                              className={styles.mapSection}
+                              aria-label="Mapa de ubicaciones"
+                            >
+                              <Suspense
+                                fallback={
+                                  <div className={styles.mapLoading}>
+                                    Cargando mapa…
+                                  </div>
+                                }
+                              >
+                                <MapView items={filtered} />
+                              </Suspense>
+                            </section>
+                          )}
+                        </div>
                       )}
                     </div>
-                  )}
-                </div>
 
-                <Footer
-                  sources={countBySource(items)}
-                  generatedAt={data.generatedAt}
-                />
-              </SourcesContext.Provider>
-            );
-          })()}
+                    <Footer
+                      sources={countBySource(items)}
+                      generatedAt={data.generatedAt}
+                    />
+                  </SourcesContext.Provider>
+                );
+              })()}
           </>
         )}
       </main>
