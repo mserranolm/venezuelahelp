@@ -19,44 +19,34 @@
 
 .wordmark {
   display: inline-flex;
-  flex-direction: column;
-  align-items: flex-end; /* "Help" right-aligned under "Venezuela" */
-  gap: 0;
-  line-height: 1;
+  align-items: center;
+  gap: 10px;
   text-decoration: none;
   flex-shrink: 0;
 }
 
-/* "Venezuela" — script font with the flag tricolor (yellow → blue → red) */
-.brandVe {
-  font-family: "Great Vibes", cursive;
-  font-size: 2.25rem;
-  /* Great Vibes ships only weight 400 → faux-bold thickens the strokes */
-  font-weight: 600;
-  line-height: 1.05;
-  background: linear-gradient(95deg, #fcd116 0%, #0a4db8 52%, #ce1126 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-  /* The script "V" has a tall left swash; padding extends the gradient area
-     (padding-box) so the clip covers the whole glyph instead of cutting it. */
-  padding: 6px 3px 0 10px;
+.mark {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  color: var(--on-primary);
+  background: linear-gradient(180deg, var(--primary), var(--primary-strong));
+  box-shadow: var(--shadow-sm);
 }
 
-/* "Help" — current sans font, smaller, tucked under "Venezuela" */
-.brandHelp {
-  font-size: 0.95rem;
-  font-weight: 700;
-  line-height: 1;
+.name {
+  font-size: 1.18rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
   color: var(--ink-strong);
-  letter-spacing: 0.02em;
-  margin-top: -4px;
-  padding-right: 3px; /* match brandVe's right inset so both align right */
 }
 
-.wordmark:hover .brandHelp {
+.name b {
   color: var(--primary);
+  font-weight: 800;
 }
 
 .wordmark:focus-visible {
@@ -198,16 +188,30 @@
     padding: 10px 16px;
   }
 
-  .brandVe {
-    font-size: 1.95rem;
+  .name {
+    font-size: 1.05rem;
   }
 
-  .brandHelp {
-    font-size: 0.85rem;
+  .mark {
+    width: 30px;
+    height: 30px;
   }
 
   .cta {
     padding: 7px 12px;
     font-size: 0.8rem;
+  }
+}
+
+.ctaShort {
+  display: none;
+}
+
+@media (max-width: 380px) {
+  .ctaFull {
+    display: none;
+  }
+  .ctaShort {
+    display: inline;
   }
 }
