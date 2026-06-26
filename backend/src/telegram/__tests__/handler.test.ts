@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { handler } from "@/telegram/handler";
+import { SKIP_LOCATION_TEXT } from "@/telegram/menu";
 import type { Snapshot } from "@/telegram/types";
 
 const snap: Snapshot = {
@@ -316,5 +317,25 @@ describe("telegram handler", () => {
       d as any,
     );
     expect(d.askBedrock).toHaveBeenCalled();
+  });
+
+  it("SKIP_LOCATION_TEXT limpia pending y muestra categoría con teclado inline (sin Bedrock)", async () => {
+    const d = deps({
+      menuState: {
+        get: vi.fn(async () => ({ pendingCategory: "refugios" })),
+        setPending: vi.fn(async () => {}),
+        setLocation: vi.fn(async () => {}),
+        clearPending: vi.fn(async () => {}),
+      },
+    });
+    await handler(
+      event(SKIP_LOCATION_TEXT, { chat: { id: 9, type: "private" } }),
+      d as any,
+    );
+    expect(d.menuState.clearPending).toHaveBeenCalledWith(9);
+    expect(d.sendMessage).toHaveBeenCalled();
+    const opts = (d.sendMessage as any).mock.calls[0][3];
+    expect(opts.replyMarkup.inline_keyboard).toBeTruthy();
+    expect(d.askBedrock).not.toHaveBeenCalled();
   });
 });

@@ -59,6 +59,7 @@ describe("MenuStateRepo", () => {
     expect(input.UpdateExpression).toContain("REMOVE pendingCategory");
     expect(input.ExpressionAttributeValues[":la"]).toBe(10.5);
     expect(input.ExpressionAttributeValues[":ln"]).toBe(-66.9);
+    expect(input.ExpressionAttributeValues[":ts"]).toBe("2026-06-26T01:00:00Z");
   });
 
   it("clearPending hace REMOVE", async () => {
