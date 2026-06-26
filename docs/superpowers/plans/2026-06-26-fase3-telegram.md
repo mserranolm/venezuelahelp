@@ -1330,3 +1330,22 @@ Expected: `setWebhook` → `{"ok":true,...}` y `getWebhookInfo` muestra la URL.
 **Dependencias externas (no bloquean el build):** cupo de Bedrock (caso de Support del usuario) y registro del webhook + alta del bot en el grupo (Task 9 Steps 4–5). El código queda listo y desplegado; la respuesta en vivo depende del cupo.
 
 **Fuera de alcance:** frontends (Fases 4–5), reconfiguración de cadencia/modelo desde admin (Fase 5), rate-limiting por usuario (fast-follow).
+
+## Limitaciones conocidas (fast-follow) — de la revisión final whole-branch
+
+Aplicado antes de ir a producción: verificación del `secret_token` de Telegram (rechaza updates falsos), guard `from.is_bot`, y reply-to-bot solo a NUESTRO username.
+
+Diferido (aceptado en MVP, atacar luego):
+
+- **Sin rate-limiting por usuario/chat** (§7 lo pide). Combinado con el cupo escaso de Bedrock, un grupo spammeando podría quemarlo. El short-circuit de retrieval-vacío (no llama a Bedrock) ayuda. Fast-follow: contador por chatId/userId con ventana.
+- **`costoEstimado` se loguea como 0** aunque hay tokens y modelo. Fast-follow: `tokens × precio` por modelo.
+- **Retrieval sin recencia ni enlaces de fuente** (§7.2 "ponderado por recencia", §7.5 "enlaces a la fuente"). `PublicItem` no lleva timestamp ni URL. Fast-follow: añadir `lastSeenAt`/`url` al snapshot y ponderar por recencia + citar enlace.
+- **Grant Bedrock en `*`**: aceptable mientras el modelo es config-driven; acotar a los ARNs de Nova Lite/Haiku cuando se fije el set.
+- **Dependencia operativa**: cupo de Bedrock (caso de Support del usuario). Hasta entonces el bot responde el mensaje de fallback. El privacy mode de BotFather (ON por defecto) es compatible con el disparo mención/comando — no requiere cambios.
+
+## Estado de despliegue (2026-06-26)
+
+- Desplegado en cuenta `720115910277` / us-east-1. Bot: **@VenezuelaHelpInfoBot**.
+- Webhook registrado con `secret_token`; `getWebhookInfo` sin errores.
+- Smoke test sintético: secreto correcto → pipeline completo hasta Bedrock (throttle); secreto incorrecto → rechazado. Always-200 confirmado.
+- Nota de deploy: `bin/app.ts` toma la cuenta de `CDK_DEFAULT_ACCOUNT`; el SDK de Node de CDK no resuelve bien las credenciales SSO, así que el deploy se hace con `eval "$(aws configure export-credentials --profile VenezuelaHelp --format env)"` + `CDK_DEFAULT_ACCOUNT=720115910277`.
