@@ -20,6 +20,9 @@ export function shouldRespond(
 ): boolean {
   const text = (msg.text ?? "").trim();
   if (!text) return false;
+  // En un chat 1-a-1 con el bot, responder a cualquier mensaje (sin comando):
+  // la CTA del sitio abre un chat privado y el usuario solo escribe su pregunta.
+  if (msg.chat.type === "private") return true;
   if (mode === "all") return true;
   if (CMD.test(text)) return true;
   if (mode === "mention")

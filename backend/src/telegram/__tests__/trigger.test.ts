@@ -11,6 +11,14 @@ const base = (text: string, extra: Partial<TgMessage> = {}): TgMessage => ({
 });
 
 describe("shouldRespond", () => {
+  it("private chat: responds to any non-empty message even in mention mode", () => {
+    const msg = base("dónde hay agua", { chat: { id: 7, type: "private" } });
+    expect(shouldRespond(msg, "vh_bot", "mention")).toBe(true);
+  });
+  it("private chat: still ignores empty messages", () => {
+    const msg = base("", { chat: { id: 7, type: "private" } });
+    expect(shouldRespond(msg, "vh_bot", "mention")).toBe(false);
+  });
   it("mention mode: responds when bot is @mentioned", () => {
     const msg = base("hola @vh_bot dónde hay acopios", {
       entities: [{ type: "mention", offset: 5, length: 7 }],
