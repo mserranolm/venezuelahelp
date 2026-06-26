@@ -40,6 +40,11 @@ vi.mock("@/data/useSnapshot", () => ({
   useSnapshot: vi.fn(),
 }));
 
+// Analytics beacon is fire-and-forget; stub it so tests don't hit the network.
+vi.mock("@/track", () => ({
+  sendBeacon: () => {},
+}));
+
 import { useSnapshot } from "@/data/useSnapshot";
 import App from "@/App";
 import type { Snapshot } from "@/types";
@@ -199,7 +204,9 @@ describe("App integration", () => {
   it("always shows the Header with wordmark", () => {
     mockUseSnapshot.mockReturnValue({ data: null, loading: true, error: null });
     render(<App />);
-    expect(screen.getByText(/VenezuelaHelp/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /Venezuela\s*Help/i }),
+    ).toBeInTheDocument();
   });
 
   it("shows generatedAt date in Hero when data loads", () => {

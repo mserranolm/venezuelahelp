@@ -3,5 +3,7 @@ import App from "@/App";
 
 it("renders", () => {
   render(<App />);
-  expect(screen.getByText(/VenezuelaHelp/i)).toBeInTheDocument();
+  expect(
+    screen.getByRole("link", { name: /Venezuela\s*Help/i }),
+  ).toBeInTheDocument();
 });

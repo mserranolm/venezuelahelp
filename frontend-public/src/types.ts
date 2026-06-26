@@ -19,17 +19,20 @@ export interface Item {
   texto: string;
   ubicacion?: Ubicacion;
   status?: string;
+  /** ISO — primera vez que la plataforma agregó este ítem ("Registrado"). */
+  firstSeenAt?: string;
+  /** ISO — última vez que se vio en una fuente. */
+  lastSeenAt?: string;
 }
 
-export interface Source {
+export interface SourceInfo {
   nombre: string;
-  url: string;
+  url?: string;
 }
 
 export interface Snapshot {
   generatedAt: string;
+  /** id → nombre + url. Emitido por el backend para enlazar cada fuente. */
+  sources?: Record<string, SourceInfo>;
   categories: Record<Category, Item[]>;
-  // Mapa sourceId -> fuente, para enlazar cada ítem a su sitio de origen.
-  // Opcional: snapshots viejos (pre-feature) no lo traen.
-  sources?: Record<string, Source>;
 }

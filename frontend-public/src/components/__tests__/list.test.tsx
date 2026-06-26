@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import ItemList from "@/components/ItemList";
 import { Empty, ErrorState, Loading } from "@/components/States";
@@ -14,6 +14,7 @@ const items: Item[] = [
     titulo: "Edificio colapsado en El Silencio",
     texto: "Reporte de estructura dañada en la zona central de Caracas.",
     ubicacion: { lat: 10.5, lng: -66.9, nombre: "El Silencio, Caracas" },
+    firstSeenAt: "2026-06-26T12:00:00Z",
   },
   {
     category: "desaparecidos",
@@ -29,6 +30,7 @@ const items: Item[] = [
     titulo: "Centro de acopio en Las Mercedes",
     texto: "Reciben agua, medicamentos y ropa.",
     ubicacion: { lat: 10.48, lng: -66.85, nombre: "Las Mercedes" },
+    firstSeenAt: "2026-06-25T09:00:00Z",
   },
 ];
 
@@ -59,34 +61,6 @@ describe("ItemList", () => {
     }
   });
 
-  it("links the item title to the source URL when a matching source is provided", () => {
-    const sources = {
-      tg: { nombre: "Telegram", url: "https://t.me/canal/101" },
-    };
-    render(<ItemList items={[items[0]]} sources={sources} />);
-    const link = screen.getByRole("link", { name: items[0].titulo });
-    expect(link).toHaveAttribute("href", "https://t.me/canal/101");
-    expect(link).toHaveAttribute("target", "_blank");
-    expect(link).toHaveAttribute("rel", expect.stringContaining("noopener"));
-  });
-
-  it("shows the human-readable source name instead of the raw sourceId", () => {
-    const sources = {
-      tg: { nombre: "Telegram", url: "https://t.me/canal/101" },
-    };
-    render(<ItemList items={[items[0]]} sources={sources} />);
-    expect(screen.getByText("Telegram")).toBeInTheDocument();
-    expect(screen.queryByText("tg")).not.toBeInTheDocument();
-  });
-
-  it("renders the title as plain text (no link) when the source is unknown", () => {
-    render(<ItemList items={[items[0]]} sources={{}} />);
-    expect(
-      screen.queryByRole("link", { name: items[0].titulo }),
-    ).not.toBeInTheDocument();
-    expect(screen.getByText(items[0].titulo)).toBeInTheDocument();
-  });
-
   it("renders ubicacion.nombre when present", () => {
     render(<ItemList items={items} />);
     expect(screen.getByText("El Silencio, Caracas")).toBeInTheDocument();
@@ -102,6 +76,47 @@ describe("ItemList", () => {
     const list = screen.getByRole("list");
     expect(list).toBeInTheDocument();
     expect(screen.queryAllByRole("listitem")).toHaveLength(0);
+  });
+
+  it("shows the formatted date for items with firstSeenAt", () => {
+    render(<ItemList items={[items[0]]} />);
+    // formatDateShort(2026-06-26) → "26 jun 2026" (es-VE)
+    expect(screen.getByText(/jun.*2026/i)).toBeInTheDocument();
+  });
+
+  it("each row is a button that opens a detail dialog", async () => {
+    const user = userEvent.setup();
+    render(<ItemList items={items} />);
+
+    // no dialog initially
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: /Edificio colapsado/i }),
+    );
+
+    const dialog = screen.getByRole("dialog");
+    // full texto shown inside the modal
+    expect(
+      within(dialog).getByText(
+        "Reporte de estructura dañada en la zona central de Caracas.",
+      ),
+    ).toBeInTheDocument();
+    // "Registrado" date label present
+    expect(within(dialog).getByText(/Registrado:/i)).toBeInTheDocument();
+  });
+
+  it("closes the detail dialog with the close button", async () => {
+    const user = userEvent.setup();
+    render(<ItemList items={items} />);
+
+    await user.click(
+      screen.getByRole("button", { name: /Edificio colapsado/i }),
+    );
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /cerrar/i }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });
 
