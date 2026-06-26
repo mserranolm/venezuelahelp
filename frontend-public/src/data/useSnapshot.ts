@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import type { Snapshot } from "@/types";
 
 const URL = import.meta.env.VITE_SNAPSHOT_URL ?? "/snapshot.json";
+// El snapshot se regenera con cada scrape; refrescamos en segundo plano cada
+// minuto para que la página muestre datos frescos sin que el usuario recargue.
+const REFRESH_MS = 60_000;
 
 export function useSnapshot() {
   const [data, setData] = useState<Snapshot | null>(null);
@@ -10,8 +13,10 @@ export function useSnapshot() {
 
   useEffect(() => {
     let alive = true;
-    fetch(URL)
-      .then((r) => {
+
+    async function load(initial: boolean) {
+      try {
+        const r = await fetch(URL);
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         // CloudFront rewrites a 403 on the data path to index.html (HTTP 200);
         // reject an HTML body so it surfaces as a clear error, not a confusing
@@ -20,23 +25,28 @@ export function useSnapshot() {
         if (!ct.includes("json")) {
           throw new Error(`Respuesta inesperada (${ct || "sin content-type"})`);
         }
-        return r.json();
-      })
-      .then((d: Snapshot) => {
-        if (alive) {
-          setData(d);
-          setLoading(false);
-        }
-      })
-      .catch((e) => {
-        if (alive) {
+        const d = (await r.json()) as Snapshot;
+        if (!alive) return;
+        setData(d);
+        setError(null);
+        setLoading(false);
+      } catch (e) {
+        if (!alive) return;
+        // En los refrescos automáticos mantenemos los últimos datos buenos en
+        // pantalla; solo la carga inicial expone el error (la página aún vacía).
+        if (initial) {
           setError(e instanceof Error ? e.message : "error");
           setLoading(false);
         }
-      });
+      }
+    }
+
+    void load(true);
+    const id = setInterval(() => void load(false), REFRESH_MS);
 
     return () => {
       alive = false;
+      clearInterval(id);
     };
   }, []);
 

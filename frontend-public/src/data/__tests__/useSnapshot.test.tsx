@@ -111,4 +111,45 @@ describe("useSnapshot", () => {
     expect(result.current.data).toBe(null);
     expect(result.current.error).toBe("HTTP 404");
   });
+
+  it("auto-refreshes the snapshot every minute", async () => {
+    vi.useFakeTimers();
+    const ok = (gen: string) =>
+      Promise.resolve({
+        ok: true,
+        headers: { get: () => "application/json" },
+        json: () =>
+          Promise.resolve({
+            generatedAt: gen,
+            categories: {
+              reportes: [],
+              desaparecidos: [],
+              acopios: [],
+              edificios: [],
+              solicitudes: [],
+            },
+          }),
+      });
+    const fetchMock = vi
+      .fn()
+      .mockReturnValueOnce(ok("v1"))
+      .mockReturnValueOnce(ok("v2"));
+    vi.stubGlobal("fetch", fetchMock as any);
+
+    const { result } = renderHook(() => useSnapshot());
+
+    await vi.waitFor(() => {
+      expect(result.current.data?.generatedAt).toBe("v1");
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // Avanza 1 minuto → segundo fetch, datos actualizados sin recargar.
+    await vi.advanceTimersByTimeAsync(60_000);
+    await vi.waitFor(() => {
+      expect(result.current.data?.generatedAt).toBe("v2");
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    vi.useRealTimers();
+  });
 });
