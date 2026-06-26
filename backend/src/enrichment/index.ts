@@ -25,6 +25,10 @@ export function enrichItems(
 
   for (const [clusterKey, list] of clusters) {
     const sourcesCount = new Set(list.map((i) => i.sourceId)).size;
+    // Solo marcamos duplicados cuando hay corroboración entre fuentes distintas.
+    // Si todo el cluster es de una sola fuente, esa fuente ya separó sus ítems
+    // por externalId: son hechos distintos, no duplicados → todos canónicos.
+    const corroborated = sourcesCount >= 2;
     // Canónico del cluster: el más reciente; desempate por SK ascendente para
     // que la elección sea estable entre corridas.
     const canonical = [...list].sort((a, b) => {
@@ -34,7 +38,7 @@ export function enrichItems(
     const canonicalSk = sk(canonical);
 
     for (const it of list) {
-      const isCanonical = sk(it) === canonicalSk;
+      const isCanonical = !corroborated || sk(it) === canonicalSk;
       const { trust, trustReasons } = scoreTrust(
         it,
         sourcesCount,

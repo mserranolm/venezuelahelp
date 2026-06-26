@@ -55,6 +55,38 @@ describe("enrichItems", () => {
     expect(out[0].trust).toBe("no_verificado");
   });
 
+  it("NO marca duplicados entre ítems de la misma fuente (mismo cluster)", () => {
+    // Dos ítems de s1 que caen en el mismo cluster geo: la fuente ya los separó
+    // por externalId, así que son hechos distintos → ambos canónicos.
+    const a = item({ sourceId: "s1", externalId: "1" });
+    const b = item({ sourceId: "s1", externalId: "2" });
+    const out = enrichItems([a, b], CFG);
+    expect(out.every((i) => i.isCanonical)).toBe(true);
+    expect(out.every((i) => i.dupOf === undefined)).toBe(true);
+    expect(out.every((i) => i.sourcesCount === 1)).toBe(true);
+  });
+
+  it("no agrupa reportes con título genérico de una sola palabra", () => {
+    const a = item({
+      category: "reportes",
+      sourceId: "s1",
+      externalId: "1",
+      titulo: "Caracas",
+      ubicacion: undefined,
+    });
+    const b = item({
+      category: "reportes",
+      sourceId: "s2",
+      externalId: "2",
+      titulo: "Caracas",
+      ubicacion: undefined,
+    });
+    const out = enrichItems([a, b], CFG);
+    // Títulos genéricos → claves únicas → clusters separados → sin corroboración.
+    expect(out.every((i) => i.isCanonical)).toBe(true);
+    expect(out.every((i) => i.sourcesCount === 1)).toBe(true);
+  });
+
   it("no muta la entrada", () => {
     const a = item({});
     enrichItems([a], CFG);

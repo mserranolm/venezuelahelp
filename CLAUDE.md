@@ -16,7 +16,7 @@ Lee siempre el spec y el plan de la fase activa antes de implementar.
 ## Arquitectura (Opción A — "casi gratis")
 
 - **Scraping programado** (EventBridge cada ~30 min, configurable) → DynamoDB. No se scrapea por mensaje.
-- **RAG "pobre"**: recuperación por palabra clave sobre DynamoDB + LLM barato de Bedrock (**Amazon Nova Lite** por defecto, configurable a Claude Haiku). **Sin base vectorial** (OpenSearch Serverless descartado por costo).
+- **RAG "pobre"**: el bot recupera por palabra clave **sobre el `snapshot.json` de S3** (lo carga en memoria y rankea en `telegram/retrieval.ts`; **no consulta DynamoDB** en tiempo de pregunta) + LLM barato de Bedrock (**Amazon Nova Lite** por defecto, configurable a Claude Haiku). **Sin base vectorial** (OpenSearch Serverless descartado por costo). El ranking infiere la categoría de la pregunta y la prioriza, pondera por campo (título/ubicación > texto) y aplica cuota por categoría; un scoring por mero conteo de keywords producía empates masivos y dejaba fuera las fichas relevantes. <!-- /aprende 2026-06-26 -->
 - **Conectores enchufables** por fuente: `jsonApi` (consume el endpoint JSON real de cada sitio) y `headless` (Playwright, solo fallback).
 - **Frontend público** lee un `snapshot.json` cacheado en S3/CloudFront que el scraper regenera → el tráfico público no pega a Lambda/DynamoDB.
 - Servicios: Lambda, DynamoDB (single-table), S3 + CloudFront (×2 + snapshot), API Gateway HTTP API, Cognito (admin), EventBridge, SSM Parameter Store, Bedrock.
@@ -57,6 +57,8 @@ npm test --workspace @venezuelahelp/backend   # solo backend
 npm run build                                 # compila backend e infra
 cd infra && npx cdk synth  --profile VenezuelaHelp   # genera plantilla (no deploy)
 cd infra && npx cdk deploy --profile VenezuelaHelp   # despliega
+cd infra && npx cdk deploy VenezuelaHelpBotStack --require-approval never   # solo la Lambda del bot (TelegramFn); un cambio de código solo mueve el S3Key, sin tocar IAM <!-- /aprende 2026-06-26 -->
+cd infra && npx cdk diff  VenezuelaHelpBotStack   # ver qué cambiaría antes de desplegar
 ```
 
 ## Convenciones

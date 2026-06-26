@@ -55,17 +55,39 @@ export function jaccard(a: string[], b: string[]): number {
   return union === 0 ? 0 : inter / union;
 }
 
-// Clave base de agrupación, antes del refuerzo difuso. Prioriza señales fuertes:
-// persona (desaparecidos) → geo → firma de título.
+// Categorías donde la ubicación física ES la identidad del ítem. En el resto
+// (reportes, solicitudes) dos ítems que comparten ciudad NO son el mismo hecho,
+// así que NO se agrupa por geo: se usa el título.
+const GEO_IDENTITY = new Set(["edificios", "acopios"]);
+
+// Una firma de título con menos de este nº de tokens significativos es demasiado
+// genérica para identificar un hecho (p. ej. solo "Caracas"): no debe agrupar.
+const MIN_TITLE_TOKENS = 2;
+
+// Clave única por ítem: no agrupa con ningún otro.
+function uniqueKey(item: StoredItem): string {
+  return `u:${item.sourceId}#${item.externalId}`;
+}
+
+// Clave de agrupación por título, o única si la firma es demasiado genérica.
+function titleKey(item: StoredItem): string {
+  const sig = titleSignature(item.titulo);
+  if (sig.length < MIN_TITLE_TOKENS) return uniqueKey(item);
+  return `t:${sig.join("-")}`;
+}
+
+// Clave base de agrupación, antes del refuerzo difuso. La señal de identidad
+// depende de la categoría.
 export function baseKey(item: StoredItem, cfg: EnrichmentConfig): string {
   if (item.category === "desaparecidos") {
     const person = normalizeText(item.titulo);
+    if (!person) return uniqueKey(item);
     const cell = item.ubicacion
       ? geoCell(item.ubicacion.lat, item.ubicacion.lng, cfg.geoCellSize)
       : "";
     return `p:${person}|${cell}`;
   }
-  if (item.ubicacion) {
+  if (GEO_IDENTITY.has(item.category) && item.ubicacion) {
     const cell = geoCell(
       item.ubicacion.lat,
       item.ubicacion.lng,
@@ -73,7 +95,7 @@ export function baseKey(item: StoredItem, cfg: EnrichmentConfig): string {
     );
     return `g:${cell}|${normalizeText(item.ubicacion.nombre ?? "")}`;
   }
-  return `t:${titleSignature(item.titulo).join("-")}`;
+  return titleKey(item);
 }
 
 export function clusterize(

@@ -87,15 +87,28 @@ interface ItemEnrichment {
 
 ### Cálculo de `clusterKey` (por categoría, determinístico)
 
-- **Geo presente** → `geoCell(lat, lng)` (rejilla ~1.2 km, redondeo de coordenadas,
-  sin dependencia externa) + `slug(nombre_zona)`.
-- **Persona (categoría `desaparecidos`)** → `slug(nombre normalizado: NFD, sin
-tildes, sin dobles espacios)` tomado del título + `geoCell` de la ubicación si existe.
-- **Sin geo ni persona** → firma de tokens del título (top-N palabras
-  significativas, sin stopwords, ordenadas). Refuerzo B: firmas con Jaccard ≥
-  umbral se funden al mismo `clusterKey`.
-- **Canónico del cluster** = mayor `sourcesCount` → desempate por `lastSeenAt` más
-  reciente → desempate final por SK (orden estable). Los demás: `isCanonical=false`,
+La señal de identidad depende de la categoría — la ubicación es identidad solo
+donde la entidad **es** un lugar físico:
+
+- **`desaparecidos`** → persona: `normalizeText(titulo)` (NFD, sin tildes) +
+  `geoCell` de la ubicación si existe.
+- **`edificios`, `acopios`** (la ubicación ES la entidad) → `geoCell(lat, lng)`
+  (rejilla ~1.1 km) + `normalizeText(nombre_zona)`. Sin ubicación → firma de título.
+- **`reportes`, `solicitudes`** (noticias/pedidos; la ubicación NO es identidad)
+  → firma de tokens del título. Refuerzo B: firmas con Jaccard ≥ umbral se funden.
+- **Título genérico** (firma con < 2 tokens significativos, p. ej. solo "Caracas")
+  → clave **única** por ítem (`u:<sourceId>#<externalId>`): no agrupa con nadie.
+  Evita colapsar cientos de reportes distintos que comparten una ciudad.
+
+**Marcado de duplicados — solo con corroboración cross-source.** Un ítem se marca
+`isCanonical=false` (duplicado) **únicamente si su cluster contiene ítems de ≥2
+`sourceId` distintos** (`sourcesCount ≥ 2`). Si todo el cluster es de una sola
+fuente, esa fuente ya los separó por `externalId`: se consideran hechos distintos
+y **todos quedan `isCanonical=true`**, sin `dupOf`. Esto evita el falso positivo de
+marcar como duplicados ítems legítimamente distintos de la misma fuente.
+
+- **Canónico del cluster** (cuando `sourcesCount ≥ 2`) = `lastSeenAt` más reciente
+  → desempate final por SK (orden estable). Los demás: `isCanonical=false`,
   `dupOf = SK(canónico)`. `sourcesCount` = nº de `sourceId` distintos en el cluster.
 
 ### Cálculo de `trust` (reglas en orden)
