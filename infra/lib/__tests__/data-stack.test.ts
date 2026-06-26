@@ -48,9 +48,9 @@ describe("DataStack", () => {
               Service: "cloudfront.amazonaws.com",
             }),
             Condition: Match.objectLike({
-              StringEquals: Match.objectLike({
-                // this.account resolves to Fn::Join at synth time — just
-                // verify the key is present (any CloudFront distribution ARN)
+              // ArnLike so the distribution/* wildcard actually matches the
+              // signed SourceArn (StringEquals would compare "*" literally).
+              ArnLike: Match.objectLike({
                 "AWS:SourceArn": Match.anyValue(),
               }),
             }),

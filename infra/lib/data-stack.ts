@@ -37,7 +37,9 @@ export class DataStack extends Stack {
         resources: [this.snapshotBucket.arnForObjects("snapshot.json")],
         principals: [new iam.ServicePrincipal("cloudfront.amazonaws.com")],
         conditions: {
-          StringEquals: {
+          // ArnLike (not StringEquals) so the distribution/* wildcard matches;
+          // StringEquals would compare the "*" literally and never match.
+          ArnLike: {
             "AWS:SourceArn": `arn:aws:cloudfront::${this.account}:distribution/*`,
           },
         },
