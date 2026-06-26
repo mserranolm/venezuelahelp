@@ -68,3 +68,4 @@ cd infra && npx cdk deploy --profile VenezuelaHelp   # despliega
 
 - Perfil SSO: **`VenezuelaHelp`** (cuenta `720115910277`, región `us-east-1`, rol Admin).
 - Tabla DynamoDB: `VenezuelaHelp`. DLQ scraper: `venezuelahelp-scraper-dlq`. Token de Telegram en SSM SecureString (Fase 3).
+- **Cupos de la cuenta al piso** (cuenta nueva): límite de concurrencia de Lambda = **10** → **no usar `reservedConcurrentExecutions`/provisioned concurrency** (AWS exige dejar ≥10 sin reservar y rechaza la reserva; rompe el deploy). Acotar costo/abuso con throttle de API Gateway + rate-limit por chat + `BudgetStack`. Subir cupos vía AWS Support. <!-- /aprende 2026-06-26 -->
