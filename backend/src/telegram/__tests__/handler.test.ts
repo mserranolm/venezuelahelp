@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { handler } from "@/telegram/handler";
+import { SKIP_LOCATION_TEXT } from "@/telegram/menu";
 import type { Snapshot } from "@/telegram/types";
 
 const snap: Snapshot = {
@@ -40,6 +41,13 @@ function deps(over = {}) {
       tokensOut: 5,
     })),
     sendMessage: vi.fn(async () => {}),
+    answerCallbackQuery: vi.fn(async () => {}),
+    menuState: {
+      get: vi.fn(async () => ({})),
+      setPending: vi.fn(async () => {}),
+      setLocation: vi.fn(async () => {}),
+      clearPending: vi.fn(async () => {}),
+    },
     ...over,
   };
 }
@@ -53,6 +61,32 @@ function event(text: string, extra = {}) {
         chat: { id: 9, type: "group" },
         from: { id: 2, username: "ana" },
         ...extra,
+      },
+    }),
+  };
+}
+
+function callbackEvent(data: string, chatId = 9) {
+  return {
+    body: JSON.stringify({
+      callback_query: {
+        id: "cb1",
+        from: { id: 2, username: "ana" },
+        message: { message_id: 1, chat: { id: chatId, type: "private" } },
+        data,
+      },
+    }),
+  };
+}
+
+function locationEvent(lat: number, lng: number, chatId = 9) {
+  return {
+    body: JSON.stringify({
+      message: {
+        message_id: 1,
+        chat: { id: chatId, type: "private" },
+        from: { id: 2, username: "ana" },
+        location: { latitude: lat, longitude: lng },
       },
     }),
   };
@@ -116,7 +150,7 @@ describe("telegram handler", () => {
     expect(d.sendMessage).toHaveBeenCalledTimes(1);
     const [, , text] = (d.sendMessage as any).mock.calls[0];
     expect(text).toContain("VenezuelaHelp");
-    expect(text.toLowerCase()).toContain("ejemplo");
+    expect(text.toLowerCase()).toContain("lenguaje natural");
   });
 
   it("on /start with a deep-link payload, still welcomes", async () => {
@@ -217,5 +251,91 @@ describe("telegram handler", () => {
       9,
       "Hay acopio en Chacao.",
     );
+  });
+
+  it("callback 'home' responde con teclado inline y SIEMPRE answerCallbackQuery", async () => {
+    const d = deps();
+    await handler(callbackEvent("home"), d as any);
+    expect(d.sendMessage).toHaveBeenCalledTimes(1);
+    const opts = (d.sendMessage as any).mock.calls[0][3];
+    expect(opts.replyMarkup.inline_keyboard).toBeTruthy();
+    expect(d.answerCallbackQuery).toHaveBeenCalledWith("TOK", "cb1");
+    expect(d.askBedrock).not.toHaveBeenCalled();
+  });
+
+  it("callback de categoría sin ubicación fresca pide ubicación y guarda pending", async () => {
+    const d = deps();
+    await handler(callbackEvent("refugios"), d as any);
+    expect(d.menuState.setPending).toHaveBeenCalledWith(9, "refugios");
+    const opts = (d.sendMessage as any).mock.calls[0][3];
+    expect(opts.replyMarkup.keyboard).toBeTruthy(); // reply keyboard con request_location
+  });
+
+  it("callback de categoría con ubicación fresca renderiza directo", async () => {
+    const d = deps({
+      menuState: {
+        get: vi.fn(async () => ({
+          lastLat: 10,
+          lastLng: -66,
+          lastLocationAt: new Date().toISOString(),
+        })),
+        setPending: vi.fn(async () => {}),
+        setLocation: vi.fn(async () => {}),
+        clearPending: vi.fn(async () => {}),
+      },
+    });
+    await handler(callbackEvent("refugios"), d as any);
+    expect(d.menuState.setPending).not.toHaveBeenCalled();
+    const opts = (d.sendMessage as any).mock.calls[0][3];
+    expect(opts.replyMarkup.inline_keyboard).toBeTruthy();
+  });
+
+  it("mensaje de ubicación renderiza la categoría pendiente y persiste la ubicación", async () => {
+    const d = deps({
+      menuState: {
+        get: vi.fn(async () => ({ pendingCategory: "refugios" })),
+        setPending: vi.fn(async () => {}),
+        setLocation: vi.fn(async () => {}),
+        clearPending: vi.fn(async () => {}),
+      },
+    });
+    await handler(locationEvent(10.5, -66.9), d as any);
+    expect(d.menuState.setLocation).toHaveBeenCalledWith(
+      9,
+      10.5,
+      -66.9,
+      expect.any(String),
+    );
+    expect(d.sendMessage).toHaveBeenCalled();
+    expect(d.askBedrock).not.toHaveBeenCalled();
+  });
+
+  it("una pregunta libre SIGUE yendo a RAG+Bedrock (regresión)", async () => {
+    const d = deps();
+    await handler(
+      event("dónde hay agua", { chat: { id: 9, type: "private" } }),
+      d as any,
+    );
+    expect(d.askBedrock).toHaveBeenCalled();
+  });
+
+  it("SKIP_LOCATION_TEXT limpia pending y muestra categoría con teclado inline (sin Bedrock)", async () => {
+    const d = deps({
+      menuState: {
+        get: vi.fn(async () => ({ pendingCategory: "refugios" })),
+        setPending: vi.fn(async () => {}),
+        setLocation: vi.fn(async () => {}),
+        clearPending: vi.fn(async () => {}),
+      },
+    });
+    await handler(
+      event(SKIP_LOCATION_TEXT, { chat: { id: 9, type: "private" } }),
+      d as any,
+    );
+    expect(d.menuState.clearPending).toHaveBeenCalledWith(9);
+    expect(d.sendMessage).toHaveBeenCalled();
+    const opts = (d.sendMessage as any).mock.calls[0][3];
+    expect(opts.replyMarkup.inline_keyboard).toBeTruthy();
+    expect(d.askBedrock).not.toHaveBeenCalled();
   });
 });

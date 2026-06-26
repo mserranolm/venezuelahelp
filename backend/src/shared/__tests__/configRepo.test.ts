@@ -42,6 +42,13 @@ describe("ConfigRepo", () => {
       bedrockModelId: "m",
       systemPrompt: "s",
       botTriggerMode: "command",
+      enrichment: {
+        geocerca: { latMin: 0.6, latMax: 12.2, lngMin: -73.4, lngMax: -59.8 },
+        blocklist: [],
+        jaccardThreshold: 0.6,
+        geoCellSize: 0.01,
+        minTextLen: 10,
+      },
     });
     const call = ddbMock.commandCalls(PutCommand)[0];
     expect(call.args[0].input.Item).toMatchObject({
@@ -49,5 +56,38 @@ describe("ConfigRepo", () => {
       SK: "GLOBAL",
       scrapeRateMin: 20,
     });
+  });
+
+  it("incluye defaults de enrichment cuando no hay Item", async () => {
+    ddbMock.on(GetCommand).resolves({ Item: undefined });
+    const cfg = await new ConfigRepo().get();
+    expect(cfg.enrichment.jaccardThreshold).toBe(0.7);
+    expect(cfg.enrichment.geoCellSize).toBe(0.01);
+    expect(cfg.enrichment.geocerca).toMatchObject({
+      latMin: 0.6,
+      latMax: 12.2,
+    });
+    expect(Array.isArray(cfg.enrichment.blocklist)).toBe(true);
+  });
+
+  it("usa enrichment persistido si existe", async () => {
+    ddbMock.on(GetCommand).resolves({
+      Item: {
+        scrapeRateMin: 30,
+        bedrockModelId: "amazon.nova-lite-v1:0",
+        systemPrompt: "x",
+        botTriggerMode: "mention",
+        enrichment: {
+          geocerca: { latMin: 1, latMax: 2, lngMin: -3, lngMax: -1 },
+          blocklist: ["xxx"],
+          jaccardThreshold: 0.8,
+          geoCellSize: 0.05,
+          minTextLen: 20,
+        },
+      },
+    });
+    const cfg = await new ConfigRepo().get();
+    expect(cfg.enrichment.jaccardThreshold).toBe(0.8);
+    expect(cfg.enrichment.blocklist).toEqual(["xxx"]);
   });
 });

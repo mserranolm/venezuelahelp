@@ -86,3 +86,36 @@ describe("buildUserText", () => {
     expect(injectionAt).toBeLessThan(fenceEnd);
   });
 });
+
+describe("buildContext — confianza", () => {
+  it("incluye nº de fuentes y confianza cuando están presentes", () => {
+    const ctx = buildContext([
+      {
+        category: "reportes",
+        sourceId: "s1",
+        externalId: "1",
+        titulo: "Sismo",
+        texto: "fuerte",
+        trust: "corroborado",
+        sourcesCount: 3,
+      },
+    ]);
+    expect(ctx).toMatch(/3 fuentes/);
+    expect(ctx).toMatch(/corroborado/);
+  });
+
+  it("marca explícitamente lo no verificado", () => {
+    const ctx = buildContext([
+      {
+        category: "reportes",
+        sourceId: "s1",
+        externalId: "1",
+        titulo: "Rumor",
+        texto: "algo",
+        trust: "no_verificado",
+        sourcesCount: 1,
+      },
+    ]);
+    expect(ctx).toMatch(/no verificado/i);
+  });
+});
