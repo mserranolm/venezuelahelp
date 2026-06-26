@@ -39,21 +39,23 @@ export default function Header() {
           </span>
         </a>
 
-        {/* Desktop nav */}
+        {/* Desktop nav — only secondary links; hidden on mobile */}
         <nav className={styles.nav} aria-label="Principal">
           <a href="#/quienes-somos" className={styles.navLink}>
             ¿Quiénes somos?
           </a>
-          <a
-            href={TELEGRAM_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.cta}
-          >
-            <span className={styles.ctaFull}>Preguntar por Telegram</span>
-            <span className={styles.ctaShort}>Telegram</span>
-          </a>
         </nav>
+
+        {/* CTA — always visible at every viewport width */}
+        <a
+          href={TELEGRAM_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={styles.cta}
+        >
+          <span className={styles.ctaFull}>Preguntar por Telegram</span>
+          <span className={styles.ctaShort}>Telegram</span>
+        </a>
 
         {/* Mobile menu trigger */}
         <button
@@ -71,7 +73,7 @@ export default function Header() {
         </button>
       </div>
 
-      {/* Mobile dropdown */}
+      {/* Mobile dropdown — Telegram CTA already visible above, so only nav links here */}
       {open && (
         <div className={styles.menuPanel}>
           <a
@@ -80,15 +82,6 @@ export default function Header() {
             onClick={() => setOpen(false)}
           >
             ¿Quiénes somos?
-          </a>
-          <a
-            href={TELEGRAM_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.menuCta}
-            onClick={() => setOpen(false)}
-          >
-            Preguntar por Telegram
           </a>
         </div>
       )}

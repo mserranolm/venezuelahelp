@@ -31,11 +31,8 @@
 
   /* sombras (nunca combinar con border en el mismo elemento) */
   --shadow-sm: 0 1px 2px oklch(0.2 0.02 255 / 0.05);
-  --shadow-md: 0 6px 24px oklch(0.2 0.04 255 / 0.08);
-
   /* medidas */
   --readw: 780px; /* ancho de lectura de la lista */
-  --r-card: 12px;
   --r-input: 10px;
 
   /* tipografía */

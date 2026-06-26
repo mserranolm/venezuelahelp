@@ -71,7 +71,6 @@ export default function ItemList({ items }: ItemListProps) {
               style={
                 {
                   "--stagger-i": delayIndex,
-                  "--cat": colorVar,
                 } as React.CSSProperties
               }
             >
