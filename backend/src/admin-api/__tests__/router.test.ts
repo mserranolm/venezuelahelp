@@ -28,6 +28,7 @@ function makeDeps(overrides: Partial<RouteDeps> = {}): RouteDeps {
       list: vi.fn().mockResolvedValue([mockSource]),
       get: vi.fn().mockResolvedValue(mockSource),
       put: vi.fn().mockResolvedValue(undefined),
+      delete: vi.fn().mockResolvedValue(undefined),
     },
     itemRepo: {
       listByCategory: vi.fn().mockResolvedValue([]),
@@ -125,6 +126,7 @@ describe("admin-api router", () => {
           list: vi.fn().mockResolvedValue([]),
           get: vi.fn().mockResolvedValue(null),
           put: vi.fn().mockResolvedValue(undefined),
+          delete: vi.fn().mockResolvedValue(undefined),
         },
       });
       const result = await route(
@@ -218,6 +220,69 @@ describe("admin-api router", () => {
         lastRun: "2024-01-01T00:00:00Z",
         lastStatus: "ok",
       });
+    });
+  });
+
+  describe("POST /sources", () => {
+    it("POST /sources creates an AI source with a slug id", async () => {
+      const sourceRepo = {
+        list: vi.fn(),
+        get: vi.fn(async () => null),
+        put: vi.fn(async () => {}),
+        delete: vi.fn(),
+      };
+      const res = await route(
+        "POST",
+        "/sources",
+        {
+          nombre: "Noticias VE",
+          url: "https://news.example/ve",
+          extractHint: "acopios",
+        },
+        { sourceRepo } as any,
+      );
+      expect(res.status).toBe(201);
+      const put = sourceRepo.put.mock.calls[0][0];
+      expect(put).toMatchObject({
+        id: "noticias-ve",
+        nombre: "Noticias VE",
+        url: "https://news.example/ve",
+        connector: "ai",
+        enabled: true,
+        extractHint: "acopios",
+      });
+    });
+
+    it("POST /sources rejects an invalid url with 400", async () => {
+      const sourceRepo = {
+        get: vi.fn(),
+        put: vi.fn(),
+        list: vi.fn(),
+        delete: vi.fn(),
+      };
+      const res = await route(
+        "POST",
+        "/sources",
+        { nombre: "x", url: "no-es-url" },
+        { sourceRepo } as any,
+      );
+      expect(res.status).toBe(400);
+    });
+  });
+
+  describe("DELETE /sources/{id}", () => {
+    it("DELETE /sources/{id} deletes", async () => {
+      const sourceRepo = {
+        delete: vi.fn(async () => {}),
+        get: vi.fn(),
+        put: vi.fn(),
+        list: vi.fn(),
+      };
+      const res = await route("DELETE", "/sources/noticias-ve", undefined, {
+        sourceRepo,
+      } as any);
+      expect(res.status).toBe(200);
+      expect(sourceRepo.delete).toHaveBeenCalledWith("noticias-ve");
     });
   });
 

@@ -6,7 +6,7 @@ import { CATEGORIES } from "@/shared/types";
 
 export interface RouteDeps {
   configRepo: Pick<ConfigRepo, "get" | "put">;
-  sourceRepo: Pick<SourceRepo, "list" | "get" | "put">;
+  sourceRepo: Pick<SourceRepo, "list" | "get" | "put" | "delete">;
   itemRepo: Pick<ItemRepo, "listByCategory">;
   invokeScraper: () => Promise<void>;
 }
@@ -26,6 +26,24 @@ const configSchema = z.object({
 const patchSourceSchema = z.object({
   enabled: z.boolean(),
 });
+
+const newSourceSchema = z.object({
+  nombre: z.string().min(1).max(80),
+  url: z.string().url(),
+  extractHint: z.string().max(500).optional(),
+});
+
+function slugify(s: string): string {
+  return (
+    s
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 60) || "fuente"
+  );
+}
 
 export async function route(
   method: string,
@@ -112,6 +130,36 @@ export async function route(
       lastStatus: s.lastStatus,
     }));
     return { status: 200, body: { counts, sources } };
+  }
+
+  // POST /sources
+  if (method === "POST" && path === "/sources") {
+    const parsed = newSourceSchema.safeParse(body);
+    if (!parsed.success)
+      return {
+        status: 400,
+        body: { error: "invalid", issues: parsed.error.issues },
+      };
+    let id = slugify(parsed.data.nombre);
+    for (let n = 2; await deps.sourceRepo.get(id); n++)
+      id = `${slugify(parsed.data.nombre)}-${n}`;
+    const source = {
+      id,
+      nombre: parsed.data.nombre,
+      url: parsed.data.url,
+      connector: "ai" as const,
+      enabled: true,
+      extractHint: parsed.data.extractHint,
+    };
+    await deps.sourceRepo.put(source);
+    return { status: 201, body: source };
+  }
+
+  // DELETE /sources/{id}
+  const del = path.match(/^\/sources\/([^/]+)$/);
+  if (method === "DELETE" && del) {
+    await deps.sourceRepo.delete(decodeURIComponent(del[1]));
+    return { status: 200, body: { deleted: decodeURIComponent(del[1]) } };
   }
 
   return { status: 404, body: { error: "not found" } };
