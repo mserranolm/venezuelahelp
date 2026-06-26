@@ -41,16 +41,33 @@ describe("CicdStack", () => {
     });
   });
 
-  it("attaches AdministratorAccess to the deploy role", () => {
-    template().hasResourceProperties("AWS::IAM::Role", {
-      ManagedPolicyArns: Match.arrayWith([
-        Match.objectLike({
-          "Fn::Join": Match.arrayWith([
-            Match.arrayWith([Match.stringLikeRegexp("AdministratorAccess")]),
-          ]),
-        }),
-      ]),
-    });
+  it("does not attach AdministratorAccess", () => {
+    const roles = template().findResources("AWS::IAM::Role");
+    for (const role of Object.values(roles)) {
+      const arns = JSON.stringify(role.Properties?.ManagedPolicyArns ?? []);
+      expect(arns).not.toContain("AdministratorAccess");
+    }
+  });
+
+  it("attaches service-scoped managed policies", () => {
+    const t = template();
+    for (const policy of [
+      "AWSCloudFormationFullAccess",
+      "AmazonS3FullAccess",
+      "AWSLambda_FullAccess",
+      "IAMFullAccess",
+      "CloudFrontFullAccess",
+    ]) {
+      t.hasResourceProperties("AWS::IAM::Role", {
+        ManagedPolicyArns: Match.arrayWith([
+          Match.objectLike({
+            "Fn::Join": Match.arrayWith([
+              Match.arrayWith([Match.stringLikeRegexp(policy)]),
+            ]),
+          }),
+        ]),
+      });
+    }
   });
 
   it("outputs the deploy role ARN", () => {
