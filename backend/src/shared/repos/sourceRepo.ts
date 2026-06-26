@@ -1,4 +1,9 @@
-import { GetCommand, PutCommand, ScanCommand } from "@aws-sdk/lib-dynamodb";
+import {
+  DeleteCommand,
+  GetCommand,
+  PutCommand,
+  ScanCommand,
+} from "@aws-sdk/lib-dynamodb";
 import { ddb, TABLE_NAME } from "@/shared/ddb";
 import { SOURCE_PK } from "@/shared/keys";
 import type { Source } from "@/shared/types";
@@ -49,5 +54,14 @@ export class SourceRepo {
 
   async listEnabled(): Promise<Source[]> {
     return (await this.list()).filter((s) => s.enabled);
+  }
+
+  async delete(id: string): Promise<void> {
+    await ddb.send(
+      new DeleteCommand({
+        TableName: TABLE_NAME,
+        Key: { PK: SOURCE_PK(id), SK },
+      }),
+    );
   }
 }

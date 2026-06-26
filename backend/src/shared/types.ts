@@ -35,12 +35,15 @@ export interface Source {
   id: string;
   nombre: string;
   url: string;
-  connector: "jsonApi" | "headless";
+  connector: "jsonApi" | "headless" | "ai";
   endpoint?: string;
   enabled: boolean;
   lastRun?: string;
   lastStatus?: "ok" | "error";
   errorMsg?: string;
+  extractHint?: string;
+  lastContentHash?: string;
+  lastExtractAt?: string;
 }
 
 export interface Config {

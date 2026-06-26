@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { mockClient } from "aws-sdk-client-mock";
 import {
   DynamoDBDocumentClient,
+  DeleteCommand,
   PutCommand,
   ScanCommand,
 } from "@aws-sdk/lib-dynamodb";
@@ -91,5 +92,12 @@ describe("SourceRepo", () => {
       });
     const all = await new SourceRepo().list();
     expect(all.map((s) => s.id)).toEqual(["a", "b"]);
+  });
+
+  it("delete removes the source by SOURCE#id / META", async () => {
+    ddbMock.on(DeleteCommand).resolves({});
+    await new SourceRepo().delete("sismo");
+    const key = ddbMock.commandCalls(DeleteCommand)[0].args[0].input.Key;
+    expect(key).toEqual({ PK: "SOURCE#sismo", SK: "META" });
   });
 });
