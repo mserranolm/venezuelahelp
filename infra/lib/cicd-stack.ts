@@ -32,13 +32,10 @@ export class CicdStack extends Stack {
         },
       ),
       // Scoped to the exact AWS services this project uses.
-      // IAMFullAccess is required because CDK creates execution roles for Lambda,
-      // grants for CloudFront OAC, and the OIDC provider itself.
       managedPolicies: [
         managed("AWSCloudFormationFullAccess"),
         managed("AmazonS3FullAccess"),
         managed("AWSLambda_FullAccess"),
-        managed("IAMFullAccess"),
         managed("CloudFrontFullAccess"),
         managed("AmazonRoute53FullAccess"),
         managed("AWSCertificateManagerFullAccess"),
@@ -52,11 +49,38 @@ export class CicdStack extends Stack {
       ],
     });
 
+    // IAM scoped to roles and policies only — explicitly excludes users, groups,
+    // and access keys so the pipeline cannot create or modify IAM identities.
+    role.addToPolicy(
+      new iam.PolicyStatement({
+        sid: "IamRolesAndPoliciesOnly",
+        actions: [
+          "iam:CreateRole", "iam:DeleteRole", "iam:UpdateRole",
+          "iam:GetRole", "iam:GetRolePolicy", "iam:ListRoles",
+          "iam:ListRolePolicies", "iam:ListAttachedRolePolicies",
+          "iam:PutRolePolicy", "iam:DeleteRolePolicy",
+          "iam:AttachRolePolicy", "iam:DetachRolePolicy",
+          "iam:PassRole", "iam:TagRole", "iam:UntagRole",
+          "iam:CreatePolicy", "iam:DeletePolicy", "iam:GetPolicy",
+          "iam:GetPolicyVersion", "iam:CreatePolicyVersion",
+          "iam:DeletePolicyVersion", "iam:ListPolicyVersions",
+          "iam:TagPolicy", "iam:UntagPolicy",
+          // OIDC provider management (for CicdStack itself)
+          "iam:CreateOpenIDConnectProvider", "iam:DeleteOpenIDConnectProvider",
+          "iam:GetOpenIDConnectProvider", "iam:UpdateOpenIDConnectProvider",
+          "iam:ListOpenIDConnectProviders", "iam:TagOpenIDConnectProvider",
+          "iam:AddClientIDToOpenIDConnectProvider",
+        ],
+        resources: ["*"],
+      }),
+    );
+
     // Cognito: no AWS-managed full-access policy exists; inline covers CRUD.
     // STS: CDK CLI calls GetCallerIdentity before synthesising.
     // EC2 Describe: CDK uses this for context lookups (AZs, VPCs).
     role.addToPolicy(
       new iam.PolicyStatement({
+        sid: "OtherServicesCdkNeeds",
         actions: ["cognito-idp:*", "sts:GetCallerIdentity", "ec2:Describe*"],
         resources: ["*"],
       }),

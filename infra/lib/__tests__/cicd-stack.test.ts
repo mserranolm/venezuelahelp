@@ -41,11 +41,26 @@ describe("CicdStack", () => {
     });
   });
 
-  it("does not attach AdministratorAccess", () => {
+  it("does not attach AdministratorAccess or IAMFullAccess", () => {
     const roles = template().findResources("AWS::IAM::Role");
     for (const role of Object.values(roles)) {
       const arns = JSON.stringify(role.Properties?.ManagedPolicyArns ?? []);
       expect(arns).not.toContain("AdministratorAccess");
+      expect(arns).not.toContain("IAMFullAccess");
+    }
+  });
+
+  it("IAM inline policy excludes user and group actions", () => {
+    const policies = template().findResources("AWS::IAM::Policy");
+    const allActions = Object.values(policies)
+      .flatMap((p) => p.Properties?.PolicyDocument?.Statement ?? [])
+      .flatMap((s: { Action: string | string[] }) =>
+        Array.isArray(s.Action) ? s.Action : [s.Action],
+      );
+    const forbidden = ["iam:CreateUser", "iam:DeleteUser", "iam:CreateGroup",
+      "iam:CreateAccessKey", "iam:AttachUserPolicy"];
+    for (const action of forbidden) {
+      expect(allActions).not.toContain(action);
     }
   });
 
