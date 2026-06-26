@@ -25,6 +25,63 @@ const bad: Source = {
 };
 
 describe("runScrape", () => {
+  it("runs the AI connector for connector:'ai' sources and persists hash/extractAt", async () => {
+    const aiSrc = {
+      id: "noticias",
+      nombre: "N",
+      url: "u",
+      connector: "ai" as const,
+      enabled: true,
+    };
+    const itemRepo = { upsert: vi.fn(async () => "created" as const) };
+    const sourceRepo = {
+      listEnabled: vi.fn(async () => [aiSrc]),
+      put: vi.fn(async () => {}),
+    };
+    const runAiSource = vi.fn(async () => ({
+      items: [
+        {
+          category: "reportes",
+          sourceId: "noticias",
+          externalId: "1",
+          titulo: "t",
+          texto: "x",
+          raw: {},
+        },
+      ],
+      nextHash: "h1",
+      nextExtractAt: "2026-06-26T00:00:00Z",
+      skipped: false,
+    }));
+    const deps = {
+      sourceRepo,
+      itemRepo,
+      seed: vi.fn(async () => {}),
+      getConnector: () => undefined,
+      configRepo: {
+        get: vi.fn(async () => ({
+          scrapeRateMin: 30,
+          bedrockModelId: "m",
+          systemPrompt: "s",
+          botTriggerMode: "mention" as const,
+        })),
+      },
+      runAiSource,
+      fetchText: vi.fn(),
+      askBedrock: vi.fn(),
+    };
+    const res = await runScrape("2026-06-26T00:00:00Z", deps as any);
+    expect(runAiSource).toHaveBeenCalled();
+    expect(itemRepo.upsert).toHaveBeenCalledTimes(1);
+    const persisted = sourceRepo.put.mock.calls[0][0];
+    expect(persisted).toMatchObject({
+      id: "noticias",
+      lastContentHash: "h1",
+      lastExtractAt: "2026-06-26T00:00:00Z",
+      lastStatus: "ok",
+    });
+  });
+
   it("isolates a failing source and still processes the healthy one", async () => {
     const itemRepo = { upsert: vi.fn(async () => "created" as const) };
     const deps = {
