@@ -36,3 +36,28 @@ export interface Snapshot {
   generatedAt: string;
   categories: Record<string, PublicItem[]>;
 }
+
+export interface InlineKeyboardButton {
+  text: string;
+  callback_data?: string;
+  url?: string;
+}
+export interface InlineKeyboardMarkup {
+  inline_keyboard: InlineKeyboardButton[][];
+}
+export interface KeyboardButton {
+  text: string;
+  request_location?: boolean;
+}
+export interface ReplyKeyboardMarkup {
+  keyboard: KeyboardButton[][];
+  resize_keyboard?: boolean;
+  one_time_keyboard?: boolean;
+}
+export interface RemoveKeyboard {
+  remove_keyboard: true;
+}
+export type ReplyMarkup =
+  | InlineKeyboardMarkup
+  | ReplyKeyboardMarkup
+  | RemoveKeyboard;
