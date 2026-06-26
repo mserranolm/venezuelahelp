@@ -36,11 +36,14 @@ describe("BotStack", () => {
     });
   });
 
-  it("caps the webhook Lambda with reserved concurrency (abuse ceiling)", () => {
-    template().hasResourceProperties("AWS::Lambda::Function", {
-      Handler: "index.handler",
-      ReservedConcurrentExecutions: 5,
-    });
+  it("does NOT reserve concurrency (account limit is 10; AWS rejects any reservation)", () => {
+    const fns = template().findResources("AWS::Lambda::Function");
+    for (const [id, res] of Object.entries(fns)) {
+      expect(
+        res.Properties?.ReservedConcurrentExecutions,
+        `Lambda ${id} must not reserve concurrency on this account`,
+      ).toBeUndefined();
+    }
   });
 
   it("retains webhook logs for only 14 days (no infinite log cost)", () => {

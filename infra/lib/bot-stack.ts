@@ -31,9 +31,11 @@ export class BotStack extends Stack {
       handler: "handler",
       timeout: Duration.seconds(30),
       memorySize: 512,
-      // Hard ceiling on concurrent invocations: caps the worst-case Bedrock +
-      // Lambda spend if the public webhook gets spammed, regardless of source.
-      reservedConcurrentExecutions: 5,
+      // NOTE: no reservedConcurrentExecutions here. This account's total
+      // concurrency limit is 10, and AWS requires keeping >=10 unreserved, so
+      // any reservation is rejected. The aggregate spend ceiling instead comes
+      // from the API Gateway stage throttle below (plus the per-chat rate limit
+      // and the cost Budget); the low account-wide concurrency is itself a cap.
       // Short log retention so CloudWatch storage never grows without bound.
       logGroup: new logs.LogGroup(this, "TelegramFnLogs", {
         retention: logs.RetentionDays.TWO_WEEKS,
