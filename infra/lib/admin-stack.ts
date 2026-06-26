@@ -87,6 +87,7 @@ export class AdminStack extends Stack {
           CorsHttpMethod.PUT,
           CorsHttpMethod.PATCH,
           CorsHttpMethod.POST,
+          CorsHttpMethod.DELETE,
           CorsHttpMethod.OPTIONS,
         ],
         allowHeaders: ["authorization", "content-type"],
@@ -112,8 +113,18 @@ export class AdminStack extends Stack {
       integration,
     });
     api.addRoutes({
+      path: "/sources",
+      methods: [HttpMethod.POST],
+      integration,
+    });
+    api.addRoutes({
       path: "/sources/{id}",
       methods: [HttpMethod.PATCH],
+      integration,
+    });
+    api.addRoutes({
+      path: "/sources/{id}",
+      methods: [HttpMethod.DELETE],
       integration,
     });
     api.addRoutes({
