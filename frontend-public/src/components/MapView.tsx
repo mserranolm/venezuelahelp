@@ -43,15 +43,19 @@ export default function MapView({ items, scrollWheelZoom = false }: Props) {
       />
       {located.map((item) => (
         <CircleMarker
-          key={item.sourceId}
+          key={`${item.category}-${item.sourceId}-${item.externalId}`}
           center={[item.ubicacion!.lat, item.ubicacion!.lng]}
           pathOptions={{ color: CATEGORY_COLOR[item.category] }}
           radius={8}
         >
           <Popup>
             <strong>{item.titulo}</strong>
-            <br />
-            {item.ubicacion!.nombre}
+            {item.ubicacion!.nombre && (
+              <>
+                <br />
+                {item.ubicacion!.nombre}
+              </>
+            )}
             <br />
             <small>{item.sourceId}</small>
           </Popup>

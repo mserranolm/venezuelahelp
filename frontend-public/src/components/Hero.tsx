@@ -20,12 +20,12 @@ export default function Hero({ generatedAt }: HeroProps) {
     <section className={styles.hero}>
       <div className={styles.inner}>
         <h1 className={styles.title}>
-          Informacion verificada del terremoto en Venezuela
+          Información verificada del terremoto en Venezuela
         </h1>
         <p className={styles.body}>
-          Aqui encontraras reportes, acopios, personas desaparecidas y
+          Aquí encontrarás reportes, acopios, personas desaparecidas y
           solicitudes de ayuda recopilados desde fuentes abiertas. Puedes
-          consultar al bot de Telegram para obtener informacion actualizada o
+          consultar al bot de Telegram para obtener información actualizada o
           hacer preguntas.
         </p>
         <a

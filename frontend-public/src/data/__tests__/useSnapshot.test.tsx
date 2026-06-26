@@ -29,6 +29,7 @@ describe("useSnapshot", () => {
       vi.fn(() =>
         Promise.resolve({
           ok: true,
+          headers: { get: () => "application/json" },
           json: () => Promise.resolve(mockData),
         }),
       ) as any,
@@ -46,6 +47,28 @@ describe("useSnapshot", () => {
 
     expect(result.current.data).toEqual(mockData);
     expect(result.current.error).toBe(null);
+  });
+
+  it("should error on a 200 with a non-JSON body (masked 403 → index.html)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve({
+          ok: true,
+          headers: { get: () => "text/html" },
+          json: () => Promise.resolve({}),
+        }),
+      ) as any,
+    );
+
+    const { result } = renderHook(() => useSnapshot());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.data).toBe(null);
+    expect(result.current.error).toMatch(/inesperada/i);
   });
 
   it("should set error when fetch fails", async () => {

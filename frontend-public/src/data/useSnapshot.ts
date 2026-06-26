@@ -13,6 +13,13 @@ export function useSnapshot() {
     fetch(URL)
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        // CloudFront rewrites a 403 on the data path to index.html (HTTP 200);
+        // reject an HTML body so it surfaces as a clear error, not a confusing
+        // JSON parse failure on masked auth errors.
+        const ct = r.headers.get("content-type") ?? "";
+        if (!ct.includes("json")) {
+          throw new Error(`Respuesta inesperada (${ct || "sin content-type"})`);
+        }
         return r.json();
       })
       .then((d: Snapshot) => {
