@@ -54,58 +54,63 @@ export default function App({ deps = {} }: AppProps) {
   const [error, setError] = useState<string | null>(null);
 
   const apiRef = useRef<ApiClient | null>(null);
+  const mountedRef = useRef(true);
 
-  async function loadData(api: ApiClient) {
+  // Track component lifetime for safe async state updates
+  useEffect(
+    () => () => {
+      mountedRef.current = false;
+    },
+    [],
+  );
+
+  async function loadData(api: ApiClient, isCancelled: () => boolean) {
     try {
       const [s, src, cfg] = await Promise.all([
         api.getStats(),
         api.getSources(),
         api.getConfig(),
       ]);
+      if (isCancelled()) return;
       setStats(s);
       setSources(src);
       setConfig(cfg);
     } catch {
-      setError("Error al cargar los datos.");
+      if (!isCancelled()) setError("Error al cargar los datos.");
     }
   }
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    let cancelled = false;
-
     async function init() {
       try {
         const cfg = await loadRuntimeConfig();
-        if (cancelled) return;
+        if (!mountedRef.current) return;
         configureAuth(cfg);
         const api = createApi(cfg.apiUrl, getIdToken);
         apiRef.current = api;
         const token = await getIdToken();
-        if (cancelled) return;
+        if (!mountedRef.current) return;
 
         if (token) {
           setAuthed(true);
-          await loadData(api);
+          await loadData(api, () => !mountedRef.current);
         } else {
           setAuthed(false);
         }
       } catch {
-        if (!cancelled) setError("Error al inicializar la aplicación.");
+        if (mountedRef.current) setError("Error al inicializar la aplicación.");
       }
     }
 
     void init();
-    return () => {
-      cancelled = true;
-    };
   }, []); // deps are injected at mount time and treated as stable refs
 
   async function handleAuthed() {
     const token = await getIdToken();
     if (token && apiRef.current) {
       setAuthed(true);
-      await loadData(apiRef.current);
+      await loadData(apiRef.current, () => !mountedRef.current);
     }
   }
 
@@ -122,16 +127,22 @@ export default function App({ deps = {} }: AppProps) {
     setScraping(true);
     try {
       await apiRef.current.scrapeNow();
+    } catch {
+      if (mountedRef.current) setError("No se pudo iniciar el scrape.");
     } finally {
-      setScraping(false);
+      if (mountedRef.current) setScraping(false);
     }
   }
 
   async function handleToggleSource(id: string, enabled: boolean) {
     if (!apiRef.current) return;
-    await apiRef.current.patchSource(id, enabled);
-    const updated = await apiRef.current.getSources();
-    setSources(updated);
+    try {
+      await apiRef.current.patchSource(id, enabled);
+      const updated = await apiRef.current.getSources();
+      if (mountedRef.current) setSources(updated);
+    } catch {
+      if (mountedRef.current) setError("No se pudo actualizar la fuente.");
+    }
   }
 
   async function handleSaveConfig(next: ConfigType) {
@@ -139,9 +150,11 @@ export default function App({ deps = {} }: AppProps) {
     setSaving(true);
     try {
       const updated = await apiRef.current.putConfig(next);
-      setConfig(updated);
+      if (mountedRef.current) setConfig(updated);
+    } catch {
+      if (mountedRef.current) setError("No se pudo guardar la configuración.");
     } finally {
-      setSaving(false);
+      if (mountedRef.current) setSaving(false);
     }
   }
 

@@ -224,4 +224,26 @@ describe("App (integration)", () => {
       expect(api.patchSource).toHaveBeenCalledWith("s1", false);
     });
   });
+
+  it("sign-out calls signOutUser and reverts to Login screen", async () => {
+    const { deps } = buildDeps(() => Promise.resolve("mock-token"));
+    const user = userEvent.setup();
+    render(<App deps={deps} />);
+
+    // Wait for the authenticated shell to appear
+    await waitFor(() => {
+      expect(screen.getByRole("navigation")).toBeInTheDocument();
+    });
+
+    // Click the sign-out button
+    await user.click(screen.getByRole("button", { name: /cerrar sesión/i }));
+
+    // signOutUser dep should have been called
+    expect(deps.signOutUser).toHaveBeenCalledTimes(1);
+
+    // Login screen should reappear (email field is present)
+    await waitFor(() => {
+      expect(screen.getByLabelText(/correo/i)).toBeInTheDocument();
+    });
+  });
 });
