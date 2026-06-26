@@ -10,7 +10,7 @@ import * as path from "node:path";
 // Create a placeholder so CDK can construct the stack without a real build.
 beforeAll(() => {
   fs.mkdirSync(
-    path.join(__dirname, "../../../../frontend-public/dist"),
+    path.join(__dirname, "../../../frontend-public/dist"),
     { recursive: true },
   );
 });
