@@ -1,5 +1,5 @@
 import { ArrowUpRight } from "@phosphor-icons/react";
-import { resolveSource } from "@/data/sources";
+import { useResolveSource } from "@/data/sources";
 import styles from "./Source.module.css";
 
 interface SourceProps {
@@ -8,7 +8,7 @@ interface SourceProps {
 
 /** Muestra la fuente de un ítem y enlaza a su sitio cuando la URL es conocida. */
 export default function Source({ sourceId }: SourceProps) {
-  const src = resolveSource(sourceId);
+  const src = useResolveSource()(sourceId);
 
   if (src.url) {
     return (

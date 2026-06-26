@@ -6,7 +6,7 @@
   min-height: 100dvh;
   background: var(--bg);
   /* Sticky-header height, reused by sticky controls + scroll offsets */
-  --header-h: 56px;
+  --header-h: 80px;
 }
 
 .main {

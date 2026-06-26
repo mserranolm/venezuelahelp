@@ -31,8 +31,20 @@ describe("buildSnapshot", () => {
           : [],
       ),
     };
+    const sourceRepo = {
+      list: vi.fn(async () => [
+        {
+          id: "s",
+          nombre: "Fuente S",
+          url: "https://s.example",
+          connector: "ai",
+          enabled: true,
+        },
+      ]),
+    };
     const res = await buildSnapshot("2026-06-25T00:00:00Z", {
       itemRepo: itemRepo as any,
+      sourceRepo: sourceRepo as any,
     });
     expect(res.key).toBe("snapshot.json");
     expect(res.count).toBe(1);
@@ -42,5 +54,10 @@ describe("buildSnapshot", () => {
     expect(body.categories.reportes[0]).not.toHaveProperty("raw");
     expect(body.categories.reportes[0].titulo).toBe("t");
     expect(body.generatedAt).toBe("2026-06-25T00:00:00Z");
+    // source directory included
+    expect(body.sources.s).toEqual({
+      nombre: "Fuente S",
+      url: "https://s.example",
+    });
   });
 });

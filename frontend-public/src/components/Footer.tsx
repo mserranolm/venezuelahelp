@@ -1,12 +1,16 @@
 import { ArrowUpRight } from "@phosphor-icons/react";
-import { resolveSource } from "@/data/sources";
+import { useResolveSource } from "@/data/sources";
+import { formatDateTime } from "@/data/datetime";
 import styles from "./Footer.module.css";
 
 interface FooterProps {
   sources: { sourceId: string; count: number }[];
+  generatedAt?: string;
 }
 
-export default function Footer({ sources }: FooterProps) {
+export default function Footer({ sources, generatedAt }: FooterProps) {
+  const resolve = useResolveSource();
+  const updated = formatDateTime(generatedAt);
   return (
     <footer className={styles.footer}>
       <div className={styles.inner}>
@@ -17,7 +21,7 @@ export default function Footer({ sources }: FooterProps) {
 
         <ul className={styles.list}>
           {sources.map(({ sourceId, count }) => {
-            const src = resolveSource(sourceId);
+            const src = resolve(sourceId);
             return (
               <li key={sourceId} className={styles.item}>
                 {src.url ? (
@@ -40,6 +44,10 @@ export default function Footer({ sources }: FooterProps) {
             );
           })}
         </ul>
+
+        {updated && (
+          <p className={styles.updated}>Datos actualizados: {updated}</p>
+        )}
 
         <p className={styles.disclaimer}>
           VenezuelaHelp agrega información de emergencia desde fuentes abiertas.

@@ -90,15 +90,14 @@
 .cardHeader {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px 14px;
-  background: color-mix(in oklab, var(--row-tint) 16%, var(--bg));
-  /* separator line below the header */
-  border-bottom: 1px solid color-mix(in oklab, var(--row-tint) 30%, var(--border));
+  gap: 7px;
+  padding: 11px 14px;
+  /* Solid, strong category color (no transparency) */
+  background: var(--row-tint);
 }
 
 .card:hover .cardHeader {
-  background: color-mix(in oklab, var(--row-tint) 22%, var(--bg));
+  background: color-mix(in oklab, var(--row-tint) 88%, black);
 }
 
 .cardHeadRow {
@@ -108,19 +107,37 @@
   gap: 10px;
 }
 
-.chevron {
-  color: color-mix(in oklab, var(--row-tint) 55%, var(--ink-strong));
+/* Type label (white on the colored header) */
+.cardType {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #fff;
+}
+
+.cardType svg {
+  color: #fff;
   flex-shrink: 0;
 }
 
-/* Title in the (darkened) category color */
+.chevron {
+  color: rgba(255, 255, 255, 0.85);
+  flex-shrink: 0;
+}
+
+/* Title in white over the strong header color */
 .cardTitle {
   display: block;
   font-size: 1.0625rem;
   font-weight: 700;
   line-height: 1.3;
   letter-spacing: -0.01em;
-  color: color-mix(in oklab, var(--row-tint) 58%, var(--ink-strong));
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
 }
 
 /* ── Body (white) ───────────────────────────────────────────── */

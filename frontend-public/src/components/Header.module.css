@@ -18,15 +18,44 @@
 }
 
 .wordmark {
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: var(--ink-strong);
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end; /* "Help" right-aligned under "Venezuela" */
+  gap: 0;
+  line-height: 1;
   text-decoration: none;
-  letter-spacing: -0.01em;
   flex-shrink: 0;
 }
 
-.wordmark:hover {
+/* "Venezuela" — script font with the flag tricolor (yellow → blue → red) */
+.brandVe {
+  font-family: "Great Vibes", cursive;
+  font-size: 2.25rem;
+  /* Great Vibes ships only weight 400 → faux-bold thickens the strokes */
+  font-weight: 600;
+  line-height: 1.05;
+  background: linear-gradient(95deg, #fcd116 0%, #0a4db8 52%, #ce1126 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  /* The script "V" has a tall left swash; padding extends the gradient area
+     (padding-box) so the clip covers the whole glyph instead of cutting it. */
+  padding: 6px 3px 0 10px;
+}
+
+/* "Help" — current sans font, smaller, tucked under "Venezuela" */
+.brandHelp {
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink-strong);
+  letter-spacing: 0.02em;
+  margin-top: -4px;
+  padding-right: 3px; /* match brandVe's right inset so both align right */
+}
+
+.wordmark:hover .brandHelp {
   color: var(--primary);
 }
 
@@ -60,13 +89,121 @@
   outline-offset: 2px;
 }
 
+/* ── Navigation (desktop inline / mobile dropdown) ──────────── */
+
+.nav {
+  display: none; /* mobile-first: hidden, shown ≥640 */
+  align-items: center;
+  gap: 18px;
+}
+
+.navLink {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.navLink:hover {
+  color: var(--primary);
+}
+
+.navLink:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.menuBtn {
+  display: inline-flex; /* mobile-first: shown, hidden ≥640 */
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  background: var(--bg);
+  color: var(--ink-strong);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.menuBtn:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.menuPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 16px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.menuLink {
+  padding: 11px 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ink-strong);
+  text-decoration: none;
+}
+
+.menuLink:hover {
+  color: var(--primary);
+}
+
+.menuLink:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.menuCta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 16px;
+  background: var(--primary);
+  color: var(--on-primary);
+  border-radius: 9px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.menuCta:hover {
+  background: var(--primary-strong);
+}
+
+.menuCta:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+@media (min-width: 640px) {
+  .nav {
+    display: flex;
+  }
+  .menuBtn,
+  .menuPanel {
+    display: none;
+  }
+}
+
 @media (max-width: 480px) {
   .inner {
     padding: 10px 16px;
   }
 
-  .wordmark {
-    font-size: 1rem;
+  .brandVe {
+    font-size: 1.95rem;
+  }
+
+  .brandHelp {
+    font-size: 0.85rem;
   }
 
   .cta {

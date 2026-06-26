@@ -17,6 +17,18 @@ export function formatDateTime(iso?: string): string | null {
   }).format(d);
 }
 
+/** "26 jun, 1:16 p. m." — compacto con hora, para el banner. */
+export function formatUpdated(iso?: string): string | null {
+  const d = parse(iso);
+  if (!d) return null;
+  return new Intl.DateTimeFormat("es-VE", {
+    day: "numeric",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(d);
+}
+
 /** "26 jun 2026" — compacto, para la fila de la lista. */
 export function formatDateShort(iso?: string): string | null {
   const d = parse(iso);

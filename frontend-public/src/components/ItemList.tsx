@@ -61,7 +61,9 @@ export default function ItemList({ items }: ItemListProps) {
           const key = `${item.category}-${item.sourceId}-${item.externalId}`;
           const delayIndex = Math.min(index, MAX_STAGGER);
           const fecha = formatDateShort(item.firstSeenAt);
-          const colorVar = `var(${CATEGORY_META[item.category].colorVar})`;
+          const meta = CATEGORY_META[item.category];
+          const TypeIcon = meta.icon;
+          const colorVar = `var(${meta.colorVar})`;
 
           return (
             <li
@@ -79,10 +81,13 @@ export default function ItemList({ items }: ItemListProps) {
                 className={styles.cardMain}
                 onClick={() => setSelected(item)}
               >
-                {/* Header (accent): tipo + título en el color del tipo */}
+                {/* Header (solid category color): tipo + título en blanco */}
                 <span className={styles.cardHeader}>
                   <span className={styles.cardHeadRow}>
-                    <Badge category={item.category} />
+                    <span className={styles.cardType}>
+                      <TypeIcon size={14} weight="fill" aria-hidden="true" />
+                      {meta.label}
+                    </span>
                     <CaretRight
                       className={styles.chevron}
                       aria-hidden="true"

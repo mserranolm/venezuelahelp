@@ -204,7 +204,9 @@ describe("App integration", () => {
   it("always shows the Header with wordmark", () => {
     mockUseSnapshot.mockReturnValue({ data: null, loading: true, error: null });
     render(<App />);
-    expect(screen.getByText(/VenezuelaHelp/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /Venezuela\s*Help/i }),
+    ).toBeInTheDocument();
   });
 
   it("shows generatedAt date in Hero when data loads", () => {

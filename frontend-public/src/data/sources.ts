@@ -1,17 +1,11 @@
+import { createContext, useContext } from "react";
+import type { SourceInfo } from "@/types";
+
 // Metadata de fuentes para mostrar un nombre legible y enlazar al sitio
-// original. El snapshot solo trae `sourceId` (sin URL por ítem: las fuentes no
-// exponen permalinks), así que enlazamos al SITIO de la fuente, no al post.
-//
-// Solo se enlazan fuentes con URL conocida y verificada (desde los conectores
-// del backend). Para `sourceId` desconocidos mostramos un nombre derivado SIN
-// link, para no redirigir a un destino inventado.
+// original. El backend ahora emite `snapshot.sources` (id → nombre + url); este
+// mapa local queda como fallback para sourceIds que el snapshot no traiga.
 
-interface SourceMeta {
-  nombre: string;
-  url?: string;
-}
-
-export const SOURCE_META: Record<string, SourceMeta> = {
+export const SOURCE_META: Record<string, SourceInfo> = {
   sismovenezuela: {
     nombre: "SismoVenezuela",
     url: "https://www.sismovenezuela.com",
@@ -24,13 +18,28 @@ export const SOURCE_META: Record<string, SourceMeta> = {
     nombre: "USGS",
     url: "https://earthquake.usgs.gov",
   },
-  // URL no verificada → se muestra el nombre sin enlace.
   "venezuela-te-busca": { nombre: "Venezuela Te Busca" },
   "wiki-terremoto": { nombre: "Wikipedia" },
 };
 
-export function resolveSource(sourceId: string): SourceMeta {
-  // Fuente conocida → nombre (+ url si verificada). Desconocida → id tal cual,
-  // sin enlace (faithful, no inventa destino).
-  return SOURCE_META[sourceId] ?? { nombre: sourceId };
+/**
+ * Resuelve una fuente: prioriza el directorio del snapshot (autoritativo),
+ * luego el mapa local, y como último recurso el id tal cual (sin enlace).
+ */
+export function resolveSource(
+  sourceId: string,
+  override?: Record<string, SourceInfo>,
+): SourceInfo {
+  return override?.[sourceId] ?? SOURCE_META[sourceId] ?? { nombre: sourceId };
+}
+
+/** Directorio de fuentes del snapshot, inyectado por App. */
+export const SourcesContext = createContext<
+  Record<string, SourceInfo> | undefined
+>(undefined);
+
+/** Hook que resuelve una fuente usando el directorio del snapshot si existe. */
+export function useResolveSource(): (sourceId: string) => SourceInfo {
+  const override = useContext(SourcesContext);
+  return (sourceId: string) => resolveSource(sourceId, override);
 }

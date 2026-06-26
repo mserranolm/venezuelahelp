@@ -25,7 +25,14 @@ export interface Item {
   lastSeenAt?: string;
 }
 
+export interface SourceInfo {
+  nombre: string;
+  url?: string;
+}
+
 export interface Snapshot {
   generatedAt: string;
+  /** id → nombre + url. Emitido por el backend para enlazar cada fuente. */
+  sources?: Record<string, SourceInfo>;
   categories: Record<Category, Item[]>;
 }

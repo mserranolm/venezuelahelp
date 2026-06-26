@@ -7,15 +7,17 @@ import {
   countByCategory,
   countBySource,
 } from "@/data/filter";
+import { SourcesContext } from "@/data/sources";
 import type { Category } from "@/types";
 
 import Header from "@/components/Header";
-import Hero from "@/components/Hero";
 import FilterBar from "@/components/FilterBar";
 import ItemList from "@/components/ItemList";
 import Pagination from "@/components/Pagination";
 import ViewToggle, { type View } from "@/components/ViewToggle";
 import Footer from "@/components/Footer";
+import SourceBanner from "@/components/SourceBanner";
+import AboutPage from "@/components/AboutPage";
 import { Loading, Empty, ErrorState } from "@/components/States";
 
 import styles from "./App.module.css";
@@ -31,13 +33,26 @@ export default function App() {
   const [active, setActive] = useState<Set<Category>>(new Set());
   const [view, setView] = useState<View>("lista");
   const [page, setPage] = useState(1);
+  const [route, setRoute] = useState<string>(
+    typeof window !== "undefined" ? window.location.hash : "",
+  );
   const listTopRef = useRef<HTMLDivElement>(null);
   const controlsRef = useRef<HTMLDivElement>(null);
-  const HEADER_H = 56;
+  const HEADER_H = 80;
 
   // Fire the analytics beacon once per page load (never blocks render).
   useEffect(() => {
     sendBeacon();
+  }, []);
+
+  // Lightweight hash routing (no router dep): "#/quienes-somos" → About page.
+  useEffect(() => {
+    const onHash = () => {
+      setRoute(window.location.hash);
+      window.scrollTo(0, 0);
+    };
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
   }, []);
 
   // Any change to the filters returns to the first page.
@@ -72,12 +87,18 @@ export default function App() {
     window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
   }
 
+  const isAbout = route === "#/quienes-somos";
+
   return (
     <div className={styles.page}>
       <Header />
 
       <main className={styles.main}>
-        {loading && <Loading />}
+        {isAbout ? (
+          <AboutPage />
+        ) : (
+          <>
+            {loading && <Loading />}
 
         {error && !loading && <ErrorState onRetry={() => location.reload()} />}
 
@@ -100,8 +121,11 @@ export default function App() {
             );
 
             return (
-              <>
-                <Hero generatedAt={data.generatedAt} />
+              <SourcesContext.Provider value={data.sources}>
+                <SourceBanner
+                  sources={countBySource(items)}
+                  generatedAt={data.generatedAt}
+                />
 
                 <div className={styles.container}>
                   <div className={styles.controls} ref={controlsRef}>
@@ -172,10 +196,15 @@ export default function App() {
                   )}
                 </div>
 
-                <Footer sources={countBySource(items)} />
-              </>
+                <Footer
+                  sources={countBySource(items)}
+                  generatedAt={data.generatedAt}
+                />
+              </SourcesContext.Provider>
             );
           })()}
+          </>
+        )}
       </main>
     </div>
   );

@@ -1,5 +1,19 @@
 {
   "generatedAt": "2026-06-26T18:00:00Z",
+  "sources": {
+    "sismovenezuela": {
+      "nombre": "SismoVenezuela",
+      "url": "https://www.sismovenezuela.com"
+    },
+    "terremotovenezuela": {
+      "nombre": "Terremoto Venezuela",
+      "url": "https://terremotovenezuela.app"
+    },
+    "venezuela-te-busca": {
+      "nombre": "Venezuela Te Busca",
+      "url": "https://venezuelatebusca.com"
+    }
+  },
   "categories": {
     "reportes": [
       {
