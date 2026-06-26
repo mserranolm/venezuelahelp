@@ -3,6 +3,7 @@ import {
   shouldRespond,
   extractQuestion,
   isStartCommand,
+  isMenuCommand,
 } from "@/telegram/trigger";
 import type { TgMessage } from "@/telegram/types";
 
@@ -69,6 +70,16 @@ describe("isStartCommand", () => {
     expect(isStartCommand(base("hola"))).toBe(false);
     expect(isStartCommand(base("/pregunta dónde hay agua"))).toBe(false);
     expect(isStartCommand(base("cuándo empezar"))).toBe(false);
+  });
+});
+
+describe("isMenuCommand", () => {
+  it("reconoce /menu, menu y menú", () => {
+    const m = (text: string) =>
+      ({ message_id: 1, text, chat: { id: 1, type: "private" } }) as any;
+    expect(isMenuCommand(m("/menu"))).toBe(true);
+    expect(isMenuCommand(m("menú"))).toBe(true);
+    expect(isMenuCommand(m("hola"))).toBe(false);
   });
 });
 

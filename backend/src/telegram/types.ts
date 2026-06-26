@@ -7,6 +7,11 @@ export interface TgUser {
   language_code?: string;
 }
 
+export interface TgLocation {
+  latitude: number;
+  longitude: number;
+}
+
 export interface TgMessage {
   message_id: number;
   text?: string;
@@ -14,10 +19,19 @@ export interface TgMessage {
   from?: TgUser;
   reply_to_message?: { from?: TgUser };
   entities?: Array<{ type: string; offset: number; length: number }>;
+  location?: TgLocation;
+}
+
+export interface TgCallbackQuery {
+  id: string;
+  from?: TgUser;
+  message?: { message_id: number; chat: { id: number; type: string } };
+  data?: string;
 }
 
 export interface TgUpdate {
   message?: TgMessage;
+  callback_query?: TgCallbackQuery;
 }
 
 export type TriggerMode = "mention" | "command" | "all";
