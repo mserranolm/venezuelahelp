@@ -1,6 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { retrieve, normalize } from "@/telegram/retrieval";
-import type { Snapshot } from "@/telegram/types";
+import {
+  retrieve,
+  normalize,
+  countAnswer,
+  isHelpRequest,
+} from "@/telegram/retrieval";
+import type { PublicItem, Snapshot } from "@/telegram/types";
 
 const snap: Snapshot = {
   generatedAt: "t",
@@ -297,5 +302,73 @@ describe("retrieve — enrichment", () => {
     } as unknown as Snapshot;
     const res = retrieve("torre chacao", s, 1);
     expect(res[0].isCanonical).toBe(true);
+  });
+});
+
+function di(src: string, id: string): PublicItem {
+  return {
+    category: "desaparecidos",
+    sourceId: src,
+    externalId: id,
+    titulo: `Persona ${id}`,
+    texto: "",
+  } as PublicItem;
+}
+
+const countSnap = {
+  generatedAt: "t",
+  sources: {},
+  categories: {
+    reportes: [],
+    desaparecidos: [
+      di("venezuela-te-busca", "1"),
+      di("venezuela-te-busca", "2"),
+      di("terremotovenezuela", "3"),
+      { ...di("ninosvenezuela", "4"), trust: "sospechoso" } as PublicItem,
+    ],
+    acopios: [],
+    edificios: [],
+    solicitudes: [
+      {
+        category: "solicitudes",
+        sourceId: "vzlayuda",
+        externalId: "s1",
+        titulo: "Necesito insulina",
+        texto: "Petare",
+      } as PublicItem,
+    ],
+  },
+} as unknown as Snapshot;
+
+describe("countAnswer (issue #15: total agregado de todas las fuentes)", () => {
+  it("agrega desaparecidos de todas las fuentes (excluye sospechosos)", () => {
+    const a = countAnswer("Personas desaparecidas número", countSnap);
+    // 3 usables (1+2+3); el sospechoso de ninosvenezuela no cuenta.
+    expect(a).toContain("3");
+    expect(a).toContain("personas desaparecidas");
+    expect(a).toContain("2 fuentes");
+  });
+
+  it("responde un resumen de todas las categorías sin categoría específica", () => {
+    const a = countAnswer("cuántos registros hay en total", countSnap);
+    expect(a).toContain("📊");
+    expect(a).toContain("personas desaparecidas");
+    expect(a).toContain("solicitudes de ayuda");
+  });
+
+  it("devuelve null cuando NO es pregunta de conteo", () => {
+    expect(countAnswer("dónde hay agua en Petare", countSnap)).toBeNull();
+  });
+});
+
+describe("isHelpRequest (issue #15: cómo solicitar ayuda)", () => {
+  it("detecta la intención de pedir ayuda", () => {
+    expect(isHelpRequest("Cómo puedo solicitar ayuda")).toBe(true);
+    expect(isHelpRequest("quiero pedir ayuda")).toBe(true);
+  });
+
+  it("NO confunde una necesidad concreta con la guía genérica", () => {
+    expect(isHelpRequest("necesito agua en Petare")).toBe(false);
+    expect(isHelpRequest("dónde hay refugios")).toBe(false);
   });
 });

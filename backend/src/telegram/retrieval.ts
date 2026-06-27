@@ -113,13 +113,88 @@ const CATEGORY_SIGNALS: Record<string, string[]> = {
   ],
 };
 
-function inferCategories(question: string): Set<string> {
+export function inferCategories(question: string): Set<string> {
   const q = normalize(question);
   const hit = new Set<string>();
   for (const [cat, signals] of Object.entries(CATEGORY_SIGNALS)) {
     if (signals.some((s) => q.includes(s))) hit.add(cat);
   }
   return hit;
+}
+
+// Etiquetas legibles por categoría para las respuestas de conteo del bot.
+const CAT_LABEL: Record<string, string> = {
+  reportes: "reportes",
+  desaparecidos: "personas desaparecidas",
+  acopios: "centros de acopio",
+  edificios: "edificios dañados",
+  solicitudes: "solicitudes de ayuda",
+  hospitales: "hospitales",
+};
+
+function plural(n: number, sing: string, plu: string): string {
+  return `${n.toLocaleString("es")} ${n === 1 ? sing : plu}`;
+}
+
+function categoryStat(items: PublicItem[]): { count: number; sources: number } {
+  // Se cuentan los ítems usables (igual que el RAG, que excluye los sospechosos).
+  const valid = items.filter((i) => i.trust !== "sospechoso");
+  return {
+    count: valid.length,
+    sources: new Set(valid.map((i) => i.sourceId)).size,
+  };
+}
+
+// Preguntas de conteo/agregado ("cuántos", "número", "total", "cantidad"). El
+// RAG normal solo ve una muestra (k ítems), así que NO puede dar un total: aquí
+// lo respondemos de forma determinista sumando el snapshot completo y agregando
+// TODAS las fuentes de la categoría. Devuelve null si no es pregunta de conteo.
+export function countAnswer(question: string, snap: Snapshot): string | null {
+  const n = normalize(question);
+  const isCount = ["cuant", "numero", "cantidad", "total"].some((s) =>
+    n.includes(s),
+  );
+  if (!isCount) return null;
+
+  const entries = Object.entries(snap.categories) as [string, PublicItem[]][];
+  const targets = inferCategories(question);
+
+  if (targets.size === 1) {
+    const [cat, items] = entries.find(([c]) => targets.has(c)) ?? ["", []];
+    const { count, sources } = categoryStat(items ?? []);
+    const label = CAT_LABEL[cat] ?? cat;
+    return `Hay ${plural(count, "registro", "registros")} de ${label} en total (de ${plural(sources, "fuente", "fuentes")}).`;
+  }
+
+  const cats = targets.size > 0 ? entries.filter(([c]) => targets.has(c)) : entries;
+  const lines = cats
+    .map(([cat, items]) => [cat, items, categoryStat(items)] as const)
+    .filter(([, , s]) => s.count > 0)
+    .map(
+      ([cat, , s]) =>
+        `• ${CAT_LABEL[cat] ?? cat}: ${s.count.toLocaleString("es")} (${plural(s.sources, "fuente", "fuentes")})`,
+    );
+  if (lines.length === 0) return "No tengo registros para ese conteo todavía.";
+  const total = cats.reduce((a, [, items]) => a + categoryStat(items).count, 0);
+  return `📊 Tengo ${total.toLocaleString("es")} registros del terremoto:\n${lines.join("\n")}`;
+}
+
+// Intención genérica de "cómo pido/solicito ayuda" (guía), distinta de una
+// necesidad concreta ("necesito agua en Petare", que sí va al RAG).
+const HELP_PHRASES = [
+  "solicitar ayuda",
+  "pedir ayuda",
+  "pido ayuda",
+  "como solicito",
+  "como pido",
+  "conseguir ayuda",
+  "consigo ayuda",
+  "quiero ayuda",
+  "donde pido",
+];
+export function isHelpRequest(question: string): boolean {
+  const n = normalize(question);
+  return HELP_PHRASES.some((p) => n.includes(p));
 }
 
 // Una coincidencia en el título o la ubicación es mucho más significativa que

@@ -11,7 +11,7 @@ import {
 } from "@/telegram/telegramApi";
 import { loadSnapshot as realLoad } from "@/telegram/snapshot";
 import { askBedrock as realAsk } from "@/telegram/bedrock";
-import { retrieve } from "@/telegram/retrieval";
+import { retrieve, countAnswer, isHelpRequest } from "@/telegram/retrieval";
 import { buildUserText } from "@/telegram/prompt";
 import {
   shouldRespond,
@@ -37,6 +37,14 @@ const NO_DATA =
   "No tengo ese dato en la información del terremoto que tengo disponible.";
 const RATE_LIMITED =
   "Estás enviando preguntas muy rápido. Espera un momento y vuelve a intentar. 🙏";
+const HELP_GUIDE = [
+  "Para pedir ayuda 🆘",
+  "",
+  "• Cuéntame tu necesidad concreta (por ejemplo: «necesito agua en Petare» o «busco un refugio en La Guaira») y te muestro lo que haya registrado.",
+  "• O abre el menú con /menu y entra a 🚨 NECESITO AYUDA (emergencias, refugios y víveres).",
+  "",
+  "⚠️ Si hay riesgo de vida, llama a emergencias (171).",
+].join("\n");
 
 const FRESH_MS = 60 * 60 * 1000;
 
@@ -209,6 +217,30 @@ export async function handler(
 
     const question = extractQuestion(msg, botUsername);
     const snap = await d.loadSnapshot();
+
+    // Intents deterministas antes del RAG (el LLM no puede contar el total ni
+    // sabe "cómo pedir ayuda"; lo resolvemos sin Bedrock).
+    const count = countAnswer(question, snap);
+    if (count) {
+      await d.sendMessage(token, chatId, count);
+      await logQa(d, chatId, question, count, [], config.bedrockModelId, 0, 0);
+      return ok();
+    }
+    if (isHelpRequest(question)) {
+      await d.sendMessage(token, chatId, HELP_GUIDE);
+      await logQa(
+        d,
+        chatId,
+        question,
+        HELP_GUIDE,
+        [],
+        config.bedrockModelId,
+        0,
+        0,
+      );
+      return ok();
+    }
+
     const items = retrieve(question, snap);
 
     if (items.length === 0) {
