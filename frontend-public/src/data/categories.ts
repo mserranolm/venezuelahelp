@@ -47,3 +47,14 @@ export const CATEGORY_META: Record<
 export const CATEGORY_ORDER: Category[] = (
   Object.keys(CATEGORY_META) as Category[]
 ).sort((a, b) => CATEGORY_META[a].order - CATEGORY_META[b].order);
+
+// Equivalentes hex de los tokens --cat-* (OKLCH) para contextos que no resuelven
+// custom properties de CSS (el HTML de los marcadores de Leaflet). Mantener en
+// sync con DESIGN.md / tokens.css.
+export const CATEGORY_HEX: Record<Category, string> = {
+  reportes: "#4f6a9e",
+  desaparecidos: "#9e7a2a",
+  acopios: "#3d8a5a",
+  edificios: "#8a4230",
+  solicitudes: "#6a4a9e",
+};
