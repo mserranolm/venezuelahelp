@@ -219,7 +219,7 @@ export default function App() {
                                   </div>
                                 }
                               >
-                                <MapView items={filtered} />
+                                <MapView items={filtered} scrollWheelZoom />
                               </Suspense>
                             </section>
                           )}

@@ -12,6 +12,7 @@ import {
   CircleMarker,
   Popup,
   Tooltip,
+  ZoomControl,
 } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import { Crosshair } from "@phosphor-icons/react";
@@ -83,11 +84,15 @@ export default function MapView({ items, scrollWheelZoom = false }: Props) {
         center={[10.5, -66.9]}
         zoom={7}
         scrollWheelZoom={scrollWheelZoom}
+        zoomControl={false}
         className={styles.map}
         ref={(m) => {
           if (m) setMap(m);
         }}
       >
+        {/* Zoom abajo-derecha: arriba-izquierda lo tapa la barra sticky de
+            filtros cuando el mapa hace scroll por debajo de ella. */}
+        <ZoomControl position="bottomright" />
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution="&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a>"
