@@ -16,13 +16,13 @@ describe("ensureSeedSources", () => {
     ]);
   });
 
-  it("seeds ninosvenezuela disabled (PII de menores: requiere coordinación)", async () => {
+  it("seeds ninosvenezuela enabled", async () => {
     const repo = new SourceRepo();
     vi.spyOn(repo, "get").mockResolvedValue(null);
     const put = vi.spyOn(repo, "put").mockResolvedValue();
     await ensureSeedSources(repo);
     const ninos = put.mock.calls.map((c) => c[0]).find((s) => s.id === "ninosvenezuela");
-    expect(ninos?.enabled).toBe(false);
+    expect(ninos?.enabled).toBe(true);
   });
 
   it("does not overwrite an existing source", async () => {
