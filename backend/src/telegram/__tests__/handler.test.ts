@@ -338,4 +338,51 @@ describe("telegram handler", () => {
     expect(opts.replyMarkup.inline_keyboard).toBeTruthy();
     expect(d.askBedrock).not.toHaveBeenCalled();
   });
+
+  it("responde un conteo agregado (issue #15) sin llamar a Bedrock", async () => {
+    const countSnap: Snapshot = {
+      generatedAt: "t",
+      categories: {
+        desaparecidos: [
+          {
+            category: "desaparecidos",
+            sourceId: "a",
+            externalId: "1",
+            titulo: "P1",
+            texto: "",
+          },
+          {
+            category: "desaparecidos",
+            sourceId: "b",
+            externalId: "2",
+            titulo: "P2",
+            texto: "",
+          },
+        ],
+      },
+    };
+    const d = deps({ loadSnapshot: vi.fn(async () => countSnap) });
+    await handler(
+      event("Personas desaparecidas número", {
+        chat: { id: 9, type: "private" },
+      }),
+      d as any,
+    );
+    expect(d.askBedrock).not.toHaveBeenCalled();
+    const reply = (d.sendMessage as any).mock.calls[0][2] as string;
+    expect(reply).toContain("2");
+    expect(reply).toContain("personas desaparecidas");
+  });
+
+  it("guía al usuario para pedir ayuda (issue #15) sin llamar a Bedrock", async () => {
+    const d = deps();
+    await handler(
+      event("Cómo puedo solicitar ayuda", { chat: { id: 9, type: "private" } }),
+      d as any,
+    );
+    expect(d.askBedrock).not.toHaveBeenCalled();
+    const reply = (d.sendMessage as any).mock.calls[0][2] as string;
+    expect(reply).toMatch(/pedir ayuda/i);
+    expect(reply).toContain("NECESITO AYUDA");
+  });
 });
