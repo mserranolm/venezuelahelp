@@ -79,6 +79,7 @@ const SNAPSHOT: Snapshot = {
     acopios: [],
     edificios: [],
     solicitudes: [],
+    hospitales: [],
   },
 };
 

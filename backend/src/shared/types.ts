@@ -4,6 +4,7 @@ export const CATEGORIES = [
   "acopios",
   "edificios",
   "solicitudes",
+  "hospitales",
 ] as const;
 
 export type Category = (typeof CATEGORIES)[number];

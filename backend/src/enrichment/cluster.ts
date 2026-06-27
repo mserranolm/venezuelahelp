@@ -56,7 +56,7 @@ export function jaccard(a: string[], b: string[]): number {
 }
 
 // Categorías donde la ubicación física ES la identidad del ítem.
-const GEO_IDENTITY = new Set(["edificios", "acopios"]);
+const GEO_IDENTITY = new Set(["edificios", "acopios", "hospitales"]);
 
 // Partes significativas (≥3 letras) de un nombre de persona normalizado.
 function nameTokens(person: string): string[] {

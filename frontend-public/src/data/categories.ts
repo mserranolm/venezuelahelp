@@ -5,6 +5,7 @@ import {
   Package,
   Buildings,
   HandHeart,
+  Hospital,
   type Icon,
 } from "@phosphor-icons/react";
 
@@ -42,6 +43,12 @@ export const CATEGORY_META: Record<
     order: 5,
     icon: HandHeart,
   },
+  hospitales: {
+    label: "Hospitales",
+    colorVar: "--cat-hospitales",
+    order: 6,
+    icon: Hospital,
+  },
 };
 
 export const CATEGORY_ORDER: Category[] = (
@@ -57,4 +64,5 @@ export const CATEGORY_HEX: Record<Category, string> = {
   acopios: "#3d8a5a",
   edificios: "#8a4230",
   solicitudes: "#6a4a9e",
+  hospitales: "#1f8a8c",
 };

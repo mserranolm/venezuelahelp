@@ -10,6 +10,7 @@ describe("ensureSeedSources", () => {
     await ensureSeedSources(repo);
     const ids = put.mock.calls.map((c) => c[0].id).sort();
     expect(ids).toEqual([
+      "hospitalesvenezuela",
       "ninosvenezuela",
       "sismovenezuela",
       "terremotovenezuela",
@@ -42,6 +43,7 @@ describe("ensureSeedSources", () => {
     const put = vi.spyOn(repo, "put").mockResolvedValue();
     await ensureSeedSources(repo);
     expect(put.mock.calls.map((c) => c[0].id).sort()).toEqual([
+      "hospitalesvenezuela",
       "ninosvenezuela",
       "terremotovenezuela",
     ]);

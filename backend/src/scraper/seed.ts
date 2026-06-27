@@ -27,6 +27,15 @@ const SEED: Source[] = [
     connector: "jsonApi",
     enabled: true,
   },
+  {
+    // Centros de salud con estado operativo y capacidad (categoría hospitales).
+    // Backend Supabase; lectura anónima. Datos del CENTRO (no PII).
+    id: "hospitalesvenezuela",
+    nombre: "Hospitales en Venezuela",
+    url: "https://hospitalesenvenezuela.com/",
+    connector: "jsonApi",
+    enabled: true,
+  },
 ];
 
 export async function ensureSeedSources(

@@ -111,6 +111,17 @@ const CATEGORY_SIGNALS: Record<string, string[]> = {
     "balance",
     "victima",
   ],
+  hospitales: [
+    "hospital",
+    "clinic",
+    "ambulatori",
+    "centro de salud",
+    "emergencia",
+    "cama",
+    "ingresad",
+    "atencion medica",
+    "salud",
+  ],
 };
 
 function inferCategories(question: string): Set<string> {

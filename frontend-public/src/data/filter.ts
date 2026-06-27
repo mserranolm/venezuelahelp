@@ -100,7 +100,7 @@ export function sourcesForDisplay(
 
 /**
  * Count items by category.
- * Returns an object with all 5 categories initialized to 0,
+ * Returns an object with all categories initialized to 0,
  * then incremented based on items.
  */
 export function countByCategory(items: Item[]): Record<Category, number> {
@@ -110,6 +110,7 @@ export function countByCategory(items: Item[]): Record<Category, number> {
     acopios: 0,
     edificios: 0,
     solicitudes: 0,
+    hospitales: 0,
   };
 
   for (const item of items) {

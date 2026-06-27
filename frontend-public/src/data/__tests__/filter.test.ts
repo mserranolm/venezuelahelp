@@ -72,6 +72,7 @@ describe("filter functions", () => {
             },
           ],
           solicitudes: [],
+          hospitales: [],
         },
       };
 
@@ -92,6 +93,7 @@ describe("filter functions", () => {
           acopios: [],
           edificios: [],
           solicitudes: [],
+          hospitales: [],
         },
       };
 
@@ -262,12 +264,13 @@ describe("filter functions", () => {
 
       const counts = countByCategory(items);
 
-      expect(Object.keys(counts)).toHaveLength(5);
+      expect(Object.keys(counts)).toHaveLength(6);
       expect(counts.reportes).toBe(1);
       expect(counts.desaparecidos).toBe(0);
       expect(counts.acopios).toBe(0);
       expect(counts.edificios).toBe(0);
       expect(counts.solicitudes).toBe(0);
+      expect(counts.hospitales).toBe(0);
     });
 
     it("should handle empty items array", () => {

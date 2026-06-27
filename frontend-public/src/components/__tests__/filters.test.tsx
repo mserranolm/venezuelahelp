@@ -10,6 +10,7 @@ const counts: Record<Category, number> = {
   acopios: 8,
   edificios: 3,
   solicitudes: 7,
+  hospitales: 0,
 };
 
 const TOTAL = Object.values(counts).reduce((a, b) => a + b, 0);

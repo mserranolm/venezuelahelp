@@ -21,6 +21,7 @@ describe("useSnapshot", () => {
         acopios: [],
         edificios: [],
         solicitudes: [],
+        hospitales: [],
       },
     };
 
