@@ -3,6 +3,7 @@ export type Category =
   | "desaparecidos"
   | "acopios"
   | "edificios"
+  | "hospitales"
   | "solicitudes";
 
 export interface Ubicacion {

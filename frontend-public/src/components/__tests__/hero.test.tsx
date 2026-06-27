@@ -10,6 +10,7 @@ const COUNTS: Record<Category, number> = {
   acopios: 1,
   edificios: 0,
   solicitudes: 0,
+  hospitales: 0,
 };
 
 describe("Hero", () => {

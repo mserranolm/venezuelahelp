@@ -1,0 +1,34 @@
+[
+  {
+    "id": "4497e3bf-30fe-4f40-a7c9-0a17f267666f",
+    "nombre": "Hospital Vargas de La Guaira",
+    "tipo": "hospital",
+    "estado": "La Guaira",
+    "ciudad": "La Guaira",
+    "municipio": "Vargas",
+    "direccion": "Av. Soublette",
+    "telefono": "0212-3334455",
+    "lat": 10.6,
+    "lng": -66.93,
+    "estado_operativo": "saturado",
+    "capacidad": "120 camas, 0 disponibles",
+    "nota": "Recibiendo solo emergencias",
+    "verificado": true
+  },
+  {
+    "id": "a1b2c3d4-0000-1111-2222-333344445555",
+    "nombre": "No registra",
+    "tipo": "otro",
+    "estado": "Por confirmar",
+    "ciudad": "Por confirmar",
+    "municipio": null,
+    "direccion": null,
+    "telefono": null,
+    "lat": null,
+    "lng": null,
+    "estado_operativo": "desconocido",
+    "capacidad": null,
+    "nota": null,
+    "verificado": false
+  }
+]

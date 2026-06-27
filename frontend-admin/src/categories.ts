@@ -26,4 +26,10 @@ export const CATEGORIES: Category[] = [
     colorVar: "--cat-solicitudes",
     order: 4,
   },
+  {
+    key: "hospitales",
+    label: "Hospitales",
+    colorVar: "--cat-hospitales",
+    order: 5,
+  },
 ];
