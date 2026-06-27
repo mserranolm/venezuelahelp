@@ -1,0 +1,47 @@
+.wrap {
+  position: relative;
+  width: 100%;
+}
+
+.map {
+  width: 100%;
+  height: 200px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  /* Aísla los z-index internos de Leaflet para que sus paneles/controles no se
+     pinten por encima del modal (close button, etc.). */
+  isolation: isolate;
+  z-index: 0;
+}
+
+.directions {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 1; /* sobre el mapa aislado */
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ink-strong);
+  text-decoration: none;
+  box-shadow: var(--shadow-sm);
+  transition:
+    border-color 150ms ease,
+    color 150ms ease;
+}
+
+.directions:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.directions:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}

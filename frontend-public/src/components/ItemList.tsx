@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import type { Item } from "@/types";
 import { MapPin, Clock, CaretRight } from "@phosphor-icons/react";
 import Badge from "@/components/Badge";
@@ -7,6 +7,10 @@ import Modal from "@/components/Modal";
 import { CATEGORY_META } from "@/data/categories";
 import { formatDateShort, formatDateTime } from "@/data/datetime";
 import styles from "./ItemList.module.css";
+
+// Leaflet es pesado; el mini-mapa del detalle se carga solo al abrir un caso
+// con coordenadas (mismo patrón que MapView en App).
+const DetailMap = lazy(() => import("@/components/DetailMap"));
 
 const MAX_STAGGER = 8; // cap animation delay at 8th item
 
@@ -59,6 +63,19 @@ function ItemDetail({ item, onClose }: { item: Item; onClose: () => void }) {
             </span>
           )}
         </div>
+
+        {item.ubicacion && (
+          <Suspense
+            fallback={<div className={styles.detailMapFallback}>Cargando mapa…</div>}
+          >
+            <DetailMap
+              lat={item.ubicacion.lat}
+              lng={item.ubicacion.lng}
+              category={item.category}
+              title={item.titulo}
+            />
+          </Suspense>
+        )}
 
         {item.imageUrl && (
           <Thumb src={item.imageUrl} className={styles.detailImage} />

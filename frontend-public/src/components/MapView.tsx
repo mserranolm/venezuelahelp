@@ -12,23 +12,14 @@ import {
   CircleMarker,
   Popup,
   Tooltip,
+  ZoomControl,
 } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import { Crosshair } from "@phosphor-icons/react";
-import { CATEGORY_META, CATEGORY_ORDER } from "@/data/categories";
+import { CATEGORY_META, CATEGORY_ORDER, CATEGORY_HEX } from "@/data/categories";
 import Source from "@/components/Source";
 import type { Item, Category } from "@/types";
 import styles from "./MapView.module.css";
-
-// Concrete hex values mirroring the --cat-* OKLCH tokens (Leaflet's marker
-// HTML can't resolve CSS custom properties). Keep in sync with DESIGN.md.
-const CATEGORY_COLOR: Record<Category, string> = {
-  reportes: "#4f6a9e",
-  desaparecidos: "#9e7a2a",
-  acopios: "#3d8a5a",
-  edificios: "#8a4230",
-  solicitudes: "#6a4a9e",
-};
 
 const USER_COLOR = "#1d6fe0";
 
@@ -39,7 +30,7 @@ const ICONS: Record<Category, L.DivIcon> = Object.fromEntries(
     const svg = renderToStaticMarkup(
       <Icon size={15} color="#fff" weight="fill" />,
     );
-    const html = `<div class="vh-pin" style="background:${CATEGORY_COLOR[cat]}"><span class="vh-pin__i">${svg}</span></div>`;
+    const html = `<div class="vh-pin" style="background:${CATEGORY_HEX[cat]}"><span class="vh-pin__i">${svg}</span></div>`;
     return [
       cat,
       L.divIcon({
@@ -93,11 +84,15 @@ export default function MapView({ items, scrollWheelZoom = false }: Props) {
         center={[10.5, -66.9]}
         zoom={7}
         scrollWheelZoom={scrollWheelZoom}
+        zoomControl={false}
         className={styles.map}
         ref={(m) => {
           if (m) setMap(m);
         }}
       >
+        {/* Zoom abajo-derecha: arriba-izquierda lo tapa la barra sticky de
+            filtros cuando el mapa hace scroll por debajo de ella. */}
+        <ZoomControl position="bottomright" />
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution="&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a>"
@@ -190,7 +185,7 @@ export default function MapView({ items, scrollWheelZoom = false }: Props) {
             <span key={cat} className={styles.legendItem}>
               <span
                 className={styles.legendDot}
-                style={{ background: CATEGORY_COLOR[cat] }}
+                style={{ background: CATEGORY_HEX[cat] }}
               >
                 <Icon size={10} color="#fff" weight="fill" />
               </span>

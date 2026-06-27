@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { useSnapshot } from "@/data/useSnapshot";
+import { useHideOnScroll } from "@/hooks/useHideOnScroll";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { sendBeacon } from "@/track";
 import {
   flatten,
@@ -18,6 +20,7 @@ import ViewToggle, { type View } from "@/components/ViewToggle";
 import Footer from "@/components/Footer";
 import Hero from "@/components/Hero";
 import AboutPage from "@/components/AboutPage";
+import Splash from "@/components/Splash";
 import { Loading, Empty, ErrorState } from "@/components/States";
 
 import styles from "./App.module.css";
@@ -39,6 +42,10 @@ export default function App() {
   const listTopRef = useRef<HTMLDivElement>(null);
   const controlsRef = useRef<HTMLDivElement>(null);
   const HEADER_H = 80;
+  // El auto-ocultar de la barra solo en mobile (desktop tiene espacio de sobra).
+  const isMobile = useMediaQuery("(max-width: 639px)", false);
+  const controlsHidden = useHideOnScroll(controlsRef, isMobile, HEADER_H);
+  const [showSplash, setShowSplash] = useState(true);
 
   // Fire the analytics beacon once per page load (never blocks render).
   useEffect(() => {
@@ -96,6 +103,7 @@ export default function App() {
 
   return (
     <div className={styles.page}>
+      {showSplash && <Splash onDone={() => setShowSplash(false)} />}
       <Header />
 
       <main className={styles.main}>
@@ -114,6 +122,7 @@ export default function App() {
               !error &&
               (() => {
                 const items = flatten(data);
+                const catCounts = countByCategory(items);
                 const filtered = filterItems(items, query, active);
                 const located = filtered.filter((it) => it.ubicacion != null);
                 // Hero y Footer reflejan el directorio de fuentes del snapshot
@@ -138,13 +147,15 @@ export default function App() {
                   <SourcesContext.Provider value={data.sources}>
                     <Hero
                       total={items.length}
-                      sourceCount={displaySources.length}
+                      counts={catCounts}
                       generatedAt={data.generatedAt}
                     />
 
                     <div className={styles.container}>
                       <div
-                        className={styles.controls}
+                        className={`${styles.controls} ${
+                          controlsHidden ? styles.controlsHidden : ""
+                        }`}
                         id="resultados"
                         ref={controlsRef}
                       >
@@ -153,7 +164,7 @@ export default function App() {
                           onQuery={setQuery}
                           active={active}
                           onToggle={onToggle}
-                          counts={countByCategory(items)}
+                          counts={catCounts}
                           resultCount={filtered.length}
                           total={items.length}
                           onClear={onClear}
@@ -207,7 +218,7 @@ export default function App() {
                                   </div>
                                 }
                               >
-                                <MapView items={filtered} />
+                                <MapView items={filtered} scrollWheelZoom />
                               </Suspense>
                             </section>
                           )}

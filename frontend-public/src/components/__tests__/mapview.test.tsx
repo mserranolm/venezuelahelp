@@ -49,6 +49,9 @@ vi.mock("react-leaflet", () => ({
   Tooltip: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="tooltip">{children}</div>
   ),
+  ZoomControl: ({ position }: { position?: string }) => (
+    <div data-testid="zoom-control" data-position={position} />
+  ),
 }));
 
 // Cluster group is a pass-through wrapper in tests (renders its markers).
@@ -183,6 +186,13 @@ describe("MapView", () => {
     render(<MapView items={[itemWithLocation, itemWithLocation2]} />);
     const cluster = screen.getByTestId("cluster");
     expect(within(cluster).getAllByTestId("marker")).toHaveLength(2);
+  });
+
+  it("renders the zoom control at bottom-right (clear of the sticky bar)", () => {
+    render(<MapView items={[itemWithLocation]} />);
+    const zoom = screen.getByTestId("zoom-control");
+    expect(zoom).toBeInTheDocument();
+    expect(zoom.dataset.position).toBe("bottomright");
   });
 
   it("renders a locate (geolocation) button", () => {
