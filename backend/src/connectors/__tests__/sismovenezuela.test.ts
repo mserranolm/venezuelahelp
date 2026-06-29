@@ -54,6 +54,15 @@ describe("sismovenezuela connector", () => {
     expect(edi?.ubicacion?.lat).not.toBe(edi?.ubicacion?.lng);
   });
 
+  it("maps source_url to sourceUrl (the original post permalink)", async () => {
+    const items = await sismovenezuela.fetchItems();
+    const r0 = items.find(
+      (i) =>
+        i.category === "reportes" && i.externalId === String(reportsFeed[0].id),
+    );
+    expect(r0?.sourceUrl).toBe(reportsFeed[0].source_url);
+  });
+
   it("maps the first media_urls entry to imageUrl, omitting it when null", async () => {
     const items = await sismovenezuela.fetchItems();
     const withMedia = items.find(

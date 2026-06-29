@@ -26,6 +26,10 @@ export interface NormalizedItem {
   // URL absoluta de la foto en la fuente original (hotlink). Opcional: muchas
   // fuentes/ítems no traen imagen. No re-hospedamos (Fase 1).
   imageUrl?: string;
+  // URL absoluta http(s) del ítem en su origen (permalink). Preferimos el link
+  // real que da la API (p.ej. el post de TikTok/IG); si la fuente no lo da, un
+  // deep-link construido. Viaja en el snapshot (no se persiste `raw`).
+  sourceUrl?: string;
   raw: unknown;
 }
 
@@ -64,10 +68,7 @@ export interface EnrichmentConfig {
 }
 
 export type TrustLevel =
-  | "verificado"
-  | "corroborado"
-  | "no_verificado"
-  | "sospechoso";
+  "verificado" | "corroborado" | "no_verificado" | "sospechoso";
 
 // Marcas derivadas por ítem, calculadas al construir el snapshot. No se
 // persisten en DynamoDB: viajan dentro del snapshot.json.

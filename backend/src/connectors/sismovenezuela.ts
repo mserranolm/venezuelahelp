@@ -44,6 +44,7 @@ async function reportes(): Promise<NormalizedItem[]> {
     ubicacion: geo(r.lat, r.lng, r.location_name),
     status: r.damage_level ? String(r.damage_level) : undefined,
     imageUrl: imageUrl(BASE, r.media_urls?.[0]),
+    sourceUrl: imageUrl(BASE, r.source_url),
     raw: r,
   }));
 }
