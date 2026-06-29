@@ -10,11 +10,25 @@ describe("ensureSeedSources", () => {
     await ensureSeedSources(repo);
     const ids = put.mock.calls.map((c) => c[0].id).sort();
     expect(ids).toEqual([
+      "desaparecidosterremotovenezuela",
       "hospitalesvenezuela",
       "ninosvenezuela",
       "sismovenezuela",
       "terremotovenezuela",
     ]);
+  });
+
+  it("siembra desaparecidosterremotovenezuela como blocked y deshabilitada", async () => {
+    const repo = new SourceRepo();
+    vi.spyOn(repo, "get").mockResolvedValue(null);
+    const put = vi.spyOn(repo, "put").mockResolvedValue();
+    await ensureSeedSources(repo);
+    const blocked = put.mock.calls
+      .map((c) => c[0])
+      .find((s) => s.id === "desaparecidosterremotovenezuela");
+    expect(blocked).toBeDefined();
+    expect(blocked?.status).toBe("blocked");
+    expect(blocked?.enabled).toBe(false);
   });
 
   it("seeds ninosvenezuela enabled", async () => {
@@ -48,6 +62,7 @@ describe("ensureSeedSources", () => {
     await ensureSeedSources(repo);
     // todas las fuentes se escriben (las nuevas se crean, la existente se repara)
     expect(put.mock.calls.map((c) => c[0].id).sort()).toEqual([
+      "desaparecidosterremotovenezuela",
       "hospitalesvenezuela",
       "ninosvenezuela",
       "sismovenezuela",

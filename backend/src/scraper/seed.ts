@@ -38,6 +38,20 @@ const SEED: Source[] = [
     connector: "jsonApi",
     enabled: true,
   },
+  {
+    // Fuente conocida pero BLOQUEADA: su API (desaparecidos-terremoto-api.
+    // theempire.tech) exige x-recaptcha-token (reCAPTCHA v3) verificado en
+    // backend → sin conector HTTP simple. Se siembra deshabilitada y marcada
+    // `blocked` para que figure en el admin como pendiente (outreach a The
+    // Empire Tech), sin intentos de scrape. Ver docs/outreach/. <!-- /aprende 2026-06-29 -->
+    id: "desaparecidosterremotovenezuela",
+    nombre: "Desaparecidos Terremoto Venezuela",
+    url: "https://desaparecidosterremotovenezuela.com/",
+    connector: "jsonApi",
+    enabled: false,
+    status: "blocked",
+    errorMsg: "Bloqueada por reCAPTCHA v3 (pendiente de acceso del operador)",
+  },
 ];
 
 export async function ensureSeedSources(
