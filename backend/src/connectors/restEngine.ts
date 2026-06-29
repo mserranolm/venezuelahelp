@@ -13,6 +13,13 @@ export function getPath(obj: unknown, path: string): unknown {
   }, obj);
 }
 
+// Coacciona un valor a string no vacío, o undefined (los números como
+// damage_level/affected llegan como number y deben viajar como texto).
+function stringOrUndefined(v: unknown): string | undefined {
+  if (v == null || String(v).trim() === "") return undefined;
+  return String(v);
+}
+
 // Sustituye "{campo}" por el dot-path resuelto sobre `obj` (vacío si falta).
 export function fillTemplate(tpl: string, obj: unknown): string {
   return tpl.replace(/\{([^}]+)\}/g, (_, k) => {
@@ -90,9 +97,7 @@ export function mapRow(
       typeof lng === "number" ? lng : undefined,
       nombre,
     ),
-    status: fm.status
-      ? ((getPath(src, fm.status) as string | undefined) ?? undefined)
-      : undefined,
+    status: fm.status ? stringOrUndefined(getPath(src, fm.status)) : undefined,
     imageUrl: fm.imageUrl
       ? imageUrl(base, getPath(src, fm.imageUrl) as string | null | undefined)
       : undefined,
