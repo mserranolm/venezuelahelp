@@ -21,6 +21,7 @@ import Footer from "@/components/Footer";
 import Hero from "@/components/Hero";
 import AboutPage from "@/components/AboutPage";
 import ApiAccessPage from "@/components/ApiAccessPage";
+import ApiDocsPage from "@/components/ApiDocsPage";
 import Interpreters from "@/components/Interpreters";
 import Splash from "@/components/Splash";
 import { Loading, Empty, ErrorState } from "@/components/States";
@@ -104,6 +105,7 @@ export default function App() {
   const isAbout = route === "#/quienes-somos";
   const isInterpreters = route === "#/interpretes";
   const isApiAccess = route === "#/api";
+  const isApiDocs = route === "#/api-docs";
 
   return (
     <div className={styles.page}>
@@ -113,6 +115,8 @@ export default function App() {
       <main className={styles.main}>
         {isAbout ? (
           <AboutPage />
+        ) : isApiDocs ? (
+          <ApiDocsPage />
         ) : isApiAccess ? (
           <ApiAccessPage />
         ) : isInterpreters ? (

@@ -95,6 +95,9 @@ export default function ApiAccessPage({
             respetando a las personas involucradas.
           </li>
         </ul>
+        <p>
+          Ver la <a href="#/api-docs">documentación completa de los endpoints</a>.
+        </p>
       </section>
 
       <section className={styles.section}>

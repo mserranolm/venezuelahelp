@@ -94,7 +94,8 @@ export default function Footer({ sources, generatedAt }: FooterProps) {
 
         <p className={styles.apiLink}>
           ¿Eres una organización y quieres mostrar estos datos en tu sitio?{" "}
-          <a href="#/api">Solicita acceso a nuestro API</a>.
+          <a href="#/api">Solicita acceso a nuestro API</a> · {" "}
+          <a href="#/api-docs">Documentación</a>.
         </p>
 
         <p className={styles.disclaimer}>
