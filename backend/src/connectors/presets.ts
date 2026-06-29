@@ -21,9 +21,10 @@ export const sismovenezuela: RestConfig = {
       shape: "array",
       fieldMap: {
         externalId: "id",
-        // location_name suele venir; si no, el autor (paridad con el conector
-        // bespoke original `location_name || author`).
+        // location_name suele venir; si no, el autor; si tampoco, "Reporte"
+        // (paridad con el bespoke original `location_name || author || "Reporte"`).
         titulo: ["location_name", "author"],
+        tituloDefault: "Reporte",
         texto: ["text_content"],
         lat: "lat",
         lng: "lng",

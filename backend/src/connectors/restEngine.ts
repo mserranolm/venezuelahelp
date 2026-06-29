@@ -61,7 +61,9 @@ export function mapRow(
     }
   }
   const titulo = truncate(
-    tituloRaw != null ? String(tituloRaw) : "(sin título)",
+    tituloRaw != null
+      ? String(tituloRaw)
+      : (fm.tituloDefault ?? "(sin título)"),
     120,
   );
 
