@@ -6,8 +6,11 @@ import type { Category } from "@/shared/types";
 export interface FieldMap {
   externalId: string;
   // dot-path al título, o una cadena de fallback (se usa el primero no vacío;
-  // p.ej. ["location_name","author"]). Si todos quedan vacíos → "(sin título)".
+  // p.ej. ["location_name","author"]).
   titulo: string | string[];
+  // Literal usado cuando todos los paths de `titulo` quedan vacíos (p.ej.
+  // "Reporte"). Si no se define → "(sin título)".
+  tituloDefault?: string;
   texto?: string[];
   lat?: string;
   lng?: string;

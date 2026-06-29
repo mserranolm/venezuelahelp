@@ -80,6 +80,7 @@ const publicUrl = z
 const fieldMapSchema = z.object({
   externalId: z.string().min(1),
   titulo: z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]),
+  tituloDefault: z.string().max(120).optional(),
   texto: z.array(z.string()).max(10).optional(),
   lat: z.string().optional(),
   lng: z.string().optional(),

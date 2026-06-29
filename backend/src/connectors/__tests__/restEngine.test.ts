@@ -132,6 +132,21 @@ describe("mapRow", () => {
     ).toBe("Catia");
     expect(mapRow({ id: 3 }, ep, "https://s.com")!.titulo).toBe("(sin título)");
   });
+
+  it("tituloDefault se usa como literal cuando la cadena queda vacía", () => {
+    const ep: RestEndpoint = {
+      ...arrEp,
+      fieldMap: {
+        externalId: "id",
+        titulo: ["location_name", "author"],
+        tituloDefault: "Reporte",
+      },
+    };
+    expect(mapRow({ id: 1 }, ep, "https://s.com")!.titulo).toBe("Reporte");
+    expect(
+      mapRow({ id: 2, location_name: "Catia" }, ep, "https://s.com")!.titulo,
+    ).toBe("Catia");
+  });
 });
 
 describe("runRestSource", () => {
