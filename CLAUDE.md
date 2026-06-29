@@ -35,7 +35,19 @@ Lee siempre el spec y el plan de la fase activa antes de implementar.
 
 ## Fuentes — estado y pendientes
 
-Hoy se scrapean **cuatro** fuentes (`backend/src/scraper/seed.ts`): `sismovenezuela` (`rest`, preset), `terremotovenezuela`, `ninosvenezuela` y `hospitalesvenezuela` (las 3 últimas bespoke en `registry.ts`). Una quinta, `desaparecidosterremotovenezuela`, se siembra `blocked`+deshabilitada.
+Hoy se scrapean **10** fuentes con datos (`backend/src/scraper/seed.ts`); una 11ª (`desaparecidosterremotovenezuela`) se siembra `blocked`+deshabilitada.
+
+- **`rest` (preset)**: `sismovenezuela`, `usgs` (GeoJSON sismos VE), `vzlayuda` (Supabase, solicitudes+acopios), `sos-en-venezuela` (API Express, desaparecidos+hospitales+solicitudes), `localiza-pacientes` (Next.js `/api/hospitals`), `red-esperanza` (Supabase, ~33k desaparecidos+acopios+necesidades), `pacientesve` (Google Sheets, ~5.5k pacientes).
+- **bespoke (`registry.ts`)**: `terremotovenezuela`, `ninosvenezuela`, `hospitalesvenezuela`.
+- **`ai`**: `venezuela-te-busca` (su API REST pide API key → sin key solo 24 ítems; queda `ai` con outreach pendiente), y `cruz-roja-espana-dona` (landing de donación **estática**, sin datos).
+
+> **6 fuentes `ai` que el operador agregó traían 0 ítems** (eran SPAs que el extractor HTML→Bedrock no puede leer). Se reconvirtieron a `rest` descubriendo su API real (chunks JS / Supabase anon key / Google Sheets). El alta vino del admin, así que `ensureSeedSources` las **repara** a `rest` por su `id` existente sin perder estado. <!-- /aprende 2026-06-29 -->
+
+> **`red-esperanza` desbloquea de facto a theempire.** Su backend Supabase (`hqoirxajavaaasvdfjoy.supabase.co`, vista pública, sin reCAPTCHA) es un **espejo** de los ~33k desaparecidos de `desaparecidosterremotovenezuela.com`/theempire (campo `fuente:"desaparecidos_terremoto_vzla"`, fotos en `cdn-imagenes.theempire.tech`). Por eso la fuente theempire bloqueada ya no es crítica. <!-- /aprende 2026-06-29 -->
+
+> **Motor `rest` — features añadidas para estas fuentes:** `paginate:{pageSize,maxItems}` (PostgREST `limit`/`offset`; red-esperanza pagina ~33k), `skipRows` (saltar el encabezado de una Google Sheet), `externalIdFrom:[...]` (id compuesto `a|b|c` para fuentes sin id estable, p.ej. pacientesve nombre|cédula|hospital). Las claves anon/publishable de Supabase y el header `Referer` (Google Sheets) viajan en `endpoint.headers`. <!-- /aprende 2026-06-29 -->
+
+> **Snapshot gzip (snapshot ~38MB → ~6.9MB).** Con todas las fuentes el `snapshot.json` pesa ~38MB y **CloudFront NO auto-comprime objetos >10MB** → `buildSnapshot` lo escribe **gzip** (`Content-Encoding: gzip`): el navegador del público lo descomprime solo (descarga ~6.9MB) y el **bot lo gunzipea al leer** (`telegram/snapshot.ts`, detección por magic bytes `1f 8b` para compat con snapshots viejos). El mapa público clusteriza (`react-leaflet-cluster`) y la lista pagina, así que 45k+ desaparecidos no cuelgan el navegador. Bot y scraper a **1024MB**, scraper timeout **15min**. <!-- /aprende 2026-06-29 -->
 
 > **`terremotovenezuela` — API movida a `api.terremotovenezuela.app` (arreglada 2026-06-29).** Su `/api/*` en el dominio de la web hoy devuelve un 404 prerenderizado (sirve el SPA). El backend real está en el subdominio `https://api.terremotovenezuela.app` (mismo shape: `{reports}` / `{markers}`; `photoUrl` relativa al subdominio); descubierto grepeando los chunks JS del bundle por la base-URL (NEXT). El conector bespoke `terremotovenezuela.ts` usa ese `BASE`. La home pública sigue siendo `terremotovenezuela.app` (Source.url). Sin permalink por ítem (la app muestra todo en un mapa, sin página de detalle) → cae a la home. <!-- /aprende 2026-06-29 -->
 
