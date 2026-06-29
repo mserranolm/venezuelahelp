@@ -68,9 +68,9 @@ describe("AdminStack", () => {
     });
   });
 
-  it("creates exactly 10 routes, all protected with JWT", () => {
+  it("creates exactly 15 routes, all protected with JWT", () => {
     const t = template();
-    t.resourceCountIs("AWS::ApiGatewayV2::Route", 10);
+    t.resourceCountIs("AWS::ApiGatewayV2::Route", 15);
     const routes = t.findResources("AWS::ApiGatewayV2::Route");
     for (const [logicalId, resource] of Object.entries(routes)) {
       expect(
@@ -78,6 +78,16 @@ describe("AdminStack", () => {
         `Route ${logicalId} must use JWT auth`,
       ).toBe("JWT");
     }
+  });
+
+  it("registers the API-program routes (programa de API para terceros)", () => {
+    const routes = template().findResources("AWS::ApiGatewayV2::Route");
+    const keys = Object.values(routes).map((r) => r.Properties?.RouteKey);
+    expect(keys).toContain("GET /api-requests");
+    expect(keys).toContain("POST /api-requests/{id}/approve");
+    expect(keys).toContain("POST /api-requests/{id}/reject");
+    expect(keys).toContain("GET /api-keys");
+    expect(keys).toContain("POST /api-keys/{id}/revoke");
   });
 
   it("outputs ApiUrl, UserPoolId, UserPoolClientId", () => {

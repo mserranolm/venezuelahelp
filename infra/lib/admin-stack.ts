@@ -156,6 +156,33 @@ export class AdminStack extends Stack {
       integration,
     });
 
+    // ── Programa de API para terceros ────────────────────────────────────────
+    api.addRoutes({
+      path: "/api-requests",
+      methods: [HttpMethod.GET],
+      integration,
+    });
+    api.addRoutes({
+      path: "/api-requests/{id}/approve",
+      methods: [HttpMethod.POST],
+      integration,
+    });
+    api.addRoutes({
+      path: "/api-requests/{id}/reject",
+      methods: [HttpMethod.POST],
+      integration,
+    });
+    api.addRoutes({
+      path: "/api-keys",
+      methods: [HttpMethod.GET],
+      integration,
+    });
+    api.addRoutes({
+      path: "/api-keys/{id}/revoke",
+      methods: [HttpMethod.POST],
+      integration,
+    });
+
     // ── Admin SPA Hosting ─────────────────────────────────────────────────────
     const siteBucket = new s3.Bucket(this, "AdminSiteBucket", {
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
