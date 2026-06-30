@@ -307,6 +307,51 @@ export const pacientesve: RestConfig = {
   ],
 };
 
+// venezuela-reporta (antes "venezuela-te-busca"): la app hellogafaro.workers.dev
+// es solo un frontend; el backend real es venezuelareporta.org, con API pública
+// `/api/v1` (sin key, CORS *). `/personas` agrega desaparecidos de varias fuentes
+// y pagina con limit/offset (max 100) → cap a 25k por la duración del scrape
+// (solapa con red-esperanza; el dedup por nombre los fusiona). `/sitios` trae
+// acopios/refugios con coordenadas. Migrada de `ai` a `rest`. Sin lat/lng en
+// personas (solo texto ciudad/zona). `ficha_url` es el permalink del ítem.
+const VR_BASE = "https://venezuelareporta.org";
+export const venezuelareporta: RestConfig = {
+  base: VR_BASE,
+  endpoints: [
+    {
+      label: "personas",
+      url: `${VR_BASE}/api/v1/personas`,
+      category: "desaparecidos",
+      itemsPath: "personas",
+      shape: "array",
+      paginate: { pageSize: 100, maxItems: 25000 },
+      fieldMap: {
+        externalId: "id",
+        titulo: ["nombre"],
+        texto: ["descripcion", "ultima_vez", "ciudad", "zona"],
+        imageUrl: "foto_url",
+        sourceUrl: "ficha_url",
+        status: "status",
+      },
+    },
+    {
+      label: "sitios",
+      url: `${VR_BASE}/api/v1/sitios`,
+      category: "acopios",
+      itemsPath: "sitios",
+      shape: "array",
+      fieldMap: {
+        externalId: "id",
+        titulo: ["nombre"],
+        texto: ["nota"],
+        lat: "lat",
+        lng: "lng",
+        status: "estado_operativo",
+      },
+    },
+  ],
+};
+
 export const PRESETS: Record<string, RestConfig> = {
   sismovenezuela,
   usgs,
@@ -315,4 +360,5 @@ export const PRESETS: Record<string, RestConfig> = {
   "localiza-pacientes": localizapacientes,
   "red-esperanza": redesperanza,
   pacientesve,
+  "venezuela-te-busca": venezuelareporta,
 };

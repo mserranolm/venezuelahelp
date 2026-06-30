@@ -20,6 +20,7 @@ describe("ensureSeedSources", () => {
       "sos-en-venezuela",
       "terremotovenezuela",
       "usgs",
+      "venezuela-te-busca",
       "vzlayuda",
     ]);
   });
@@ -78,6 +79,7 @@ describe("ensureSeedSources", () => {
       "sos-en-venezuela",
       "terremotovenezuela",
       "usgs",
+      "venezuela-te-busca",
       "vzlayuda",
     ]);
     const sismo = put.mock.calls

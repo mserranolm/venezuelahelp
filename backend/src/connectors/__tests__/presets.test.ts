@@ -191,6 +191,70 @@ describe("preset sismovenezuela", () => {
     });
   });
 
+  it("venezuela-reporta personas: nombre→titulo, ficha_url→sourceUrl, foto_url→imageUrl", async () => {
+    const persona = {
+      id: "c4788175",
+      status: "buscando",
+      nombre: "Yonathan Jimenez",
+      edad: 38,
+      ciudad: "Caraballeda",
+      zona: "La Guaira",
+      ultima_vez: "Edf. Coral Park",
+      descripcion: "Alto, flaco",
+      foto_url:
+        "https://wlvcfbuxkdrxhxqlwwmo.supabase.co/storage/v1/object/public/fotos/x.jpg",
+      ficha_url: "https://venezuelareporta.org/reporte/c4788175",
+    };
+    const { items } = await runRestSource(
+      "venezuela-te-busca",
+      {
+        base: "https://venezuelareporta.org",
+        endpoints: [PRESETS["venezuela-te-busca"].endpoints[0]],
+      },
+      { fetchJson: (async () => ({ ok: true, personas: [persona] })) as never },
+    );
+    expect(items[0]).toMatchObject({
+      category: "desaparecidos",
+      externalId: "c4788175",
+      titulo: "Yonathan Jimenez",
+      imageUrl:
+        "https://wlvcfbuxkdrxhxqlwwmo.supabase.co/storage/v1/object/public/fotos/x.jpg",
+      sourceUrl: "https://venezuelareporta.org/reporte/c4788175",
+      status: "buscando",
+    });
+  });
+
+  it("venezuela-reporta sitios: nombre→titulo, lat/lng→ubicacion (acopios)", async () => {
+    const sitio = {
+      id: "53f412fb",
+      tipo: "acopio",
+      nombre: "Acopio- Lumière",
+      lat: 8.574,
+      lng: -71.174,
+      estado_operativo: "abierto",
+      nota: null,
+    };
+    const { items } = await runRestSource(
+      "venezuela-te-busca",
+      {
+        base: "https://venezuelareporta.org",
+        endpoints: [PRESETS["venezuela-te-busca"].endpoints[1]],
+      },
+      { fetchJson: (async () => ({ ok: true, sitios: [sitio] })) as never },
+    );
+    expect(items[0]).toMatchObject({
+      category: "acopios",
+      externalId: "53f412fb",
+      titulo: "Acopio- Lumière",
+      status: "abierto",
+    });
+    expect(items[0].ubicacion).toEqual({
+      lat: 8.574,
+      lng: -71.174,
+      nombre: "Acopio- Lumière",
+    });
+  });
+
   it("aísla un endpoint caído (los demás siguen + endpointStats)", async () => {
     const { items, endpointStats } = await runRestSource(
       "sismovenezuela",

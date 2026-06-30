@@ -94,6 +94,18 @@ const SEED: Source[] = [
     enabled: true,
   },
   {
+    // Venezuela Reporta (antes "venezuela-te-busca", que era solo un frontend
+    // sobre venezuelareporta.org). API pública `/api/v1`: ~46k desaparecidos
+    // (cap 25k) + ~68 acopios. Migrada de `ai` a `rest`. El id se conserva para
+    // que ensureSeedSources repare la fuente existente por su id.
+    id: "venezuela-te-busca",
+    nombre: "Venezuela Reporta",
+    url: "https://venezuelareporta.org/",
+    connector: "rest",
+    rest: PRESETS["venezuela-te-busca"],
+    enabled: true,
+  },
+  {
     // Fuente conocida pero BLOQUEADA: su API (desaparecidos-terremoto-api.
     // theempire.tech) exige x-recaptcha-token (reCAPTCHA v3) verificado en
     // backend → sin conector HTTP simple. Se siembra deshabilitada y marcada
