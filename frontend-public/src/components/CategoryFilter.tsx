@@ -1,3 +1,4 @@
+import { Handshake } from "@phosphor-icons/react";
 import type { Category } from "@/types";
 import { CATEGORY_META, CATEGORY_ORDER } from "@/data/categories";
 import styles from "./CategoryFilter.module.css";
@@ -8,6 +9,12 @@ interface Props {
   counts: Record<Category, number>;
   /** Sin encabezado y tarjetas más chicas (para el overlay del mapa). */
   compact?: boolean;
+  /** Chip "Match" (posibles localizaciones). Si se pasa onToggleMatch, se
+   * renderiza un 7º chip que no filtra por categoría, sino que muestra el cruce
+   * buscado↔localizado en el área de resultados. */
+  matchActive?: boolean;
+  onToggleMatch?: () => void;
+  matchCount?: number;
 }
 
 export default function CategoryFilter({
@@ -15,6 +22,9 @@ export default function CategoryFilter({
   onToggle,
   counts,
   compact = false,
+  matchActive = false,
+  onToggleMatch,
+  matchCount = 0,
 }: Props) {
   return (
     <div className={compact ? styles.compact : undefined}>
@@ -50,6 +60,22 @@ export default function CategoryFilter({
             </button>
           );
         })}
+
+        {onToggleMatch && (
+          <button
+            type="button"
+            className={`${styles.card} ${matchActive ? styles.cardActive : ""}`}
+            aria-pressed={matchActive}
+            onClick={onToggleMatch}
+            style={{ "--card-color": "var(--primary)" } as React.CSSProperties}
+          >
+            <span className={styles.cardIcon} aria-hidden="true">
+              <Handshake size={compact ? 20 : 26} weight="duotone" />
+            </span>
+            <span className={styles.cardLabel}>Match</span>
+            <span className={styles.cardCount}>{matchCount}</span>
+          </button>
+        )}
       </div>
     </div>
   );
