@@ -4,3 +4,4 @@ export * from "./category";
 export * from "./rank";
 export * from "./filter";
 export * from "./search";
+export * from "./aggregate";
