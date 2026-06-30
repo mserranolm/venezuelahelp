@@ -183,7 +183,8 @@ export function countAnswer(question: string, snap: Snapshot): string | null {
     return `Hay ${plural(count, "registro", "registros")} de ${label} en total (de ${plural(sources, "fuente", "fuentes")}).`;
   }
 
-  const cats = targets.size > 0 ? entries.filter(([c]) => targets.has(c)) : entries;
+  const cats =
+    targets.size > 0 ? entries.filter(([c]) => targets.has(c)) : entries;
   const lines = cats
     .map(([cat, items]) => [cat, items, categoryStat(items)] as const)
     .filter(([, , s]) => s.count > 0)
@@ -209,9 +210,41 @@ const HELP_PHRASES = [
   "quiero ayuda",
   "donde pido",
 ];
+// Gritos de auxilio escuetos ("ayuda", "auxilio") y palabras de relleno que
+// pueden acompañarlos sin volver la petición concreta ("necesito ayuda",
+// "ayuda por favor"). Si el mensaje SOLO contiene estas palabras, es una
+// petición genérica de guía; si trae algo más ("ayuda con agua en Petare"),
+// es una necesidad concreta y va al RAG.
+const HELP_CRIES = [
+  "ayuda",
+  "ayudame",
+  "ayudenme",
+  "ayudenos",
+  "auxilio",
+  "socorro",
+];
+const HELP_FILLER = new Set([
+  ...HELP_CRIES,
+  "necesito",
+  "quiero",
+  "por",
+  "favor",
+  "porfa",
+  "porfavor",
+  "hola",
+  "una",
+  "algo",
+  "alguna",
+]);
+function isBareHelpCry(n: string): boolean {
+  const words = n.split(" ").filter(Boolean);
+  if (words.length === 0) return false;
+  const hasCry = words.some((w) => HELP_CRIES.includes(w));
+  return hasCry && words.every((w) => HELP_FILLER.has(w));
+}
 export function isHelpRequest(question: string): boolean {
   const n = normalize(question);
-  return HELP_PHRASES.some((p) => n.includes(p));
+  return HELP_PHRASES.some((p) => n.includes(p)) || isBareHelpCry(n);
 }
 
 // Una coincidencia en el título o la ubicación es mucho más significativa que
