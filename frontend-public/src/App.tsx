@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { useSnapshot } from "@/data/useSnapshot";
-import { useHideOnScroll } from "@/hooks/useHideOnScroll";
+import { useRevealOnScrollUp } from "@/hooks/useRevealOnScrollUp";
 import { sendBeacon } from "@/track";
 import {
   flatten,
@@ -41,9 +41,9 @@ export default function App() {
   );
   const controlsRef = useRef<HTMLDivElement>(null);
   const HEADER_H = 80;
-  // La barra (búsqueda + filtros) scrollea con el contenido y reaparece al
-  // subir, en móvil y desktop.
-  const controlsHidden = useHideOnScroll(controlsRef, true, HEADER_H);
+  // Los controles (búsqueda + filtros) viven en el flujo y se van solos al
+  // bajar; al subir reaparece una barra fija de respaldo (headroom).
+  const revealControls = useRevealOnScrollUp(controlsRef, HEADER_H);
   const [showSplash, setShowSplash] = useState(true);
   // Mapa a pantalla completa en móvil (en desktop se usa el toggle Lista/Mapa).
   const [mapOpen, setMapOpen] = useState(false);
@@ -134,11 +134,32 @@ export default function App() {
                       generatedAt={data.generatedAt}
                     />
 
+                    {/* Barra fija de respaldo: reaparece al subir cuando los
+                        controles del flujo ya no se ven. Misma búsqueda/filtros
+                        (comparten estado). */}
+                    <div
+                      className={`${styles.revealBar} ${
+                        revealControls ? styles.revealBarShown : ""
+                      }`}
+                      aria-hidden={!revealControls}
+                    >
+                      <div className={styles.revealBarInner}>
+                        <FilterBar
+                          query={query}
+                          onQuery={setQuery}
+                          active={active}
+                          onToggle={onToggle}
+                          counts={catCounts}
+                          resultCount={filtered.length}
+                          total={items.length}
+                          onClear={onClear}
+                        />
+                      </div>
+                    </div>
+
                     <div className={styles.container}>
                       <div
-                        className={`${styles.controls} ${
-                          controlsHidden ? styles.controlsHidden : ""
-                        }`}
+                        className={styles.controls}
                         id="resultados"
                         ref={controlsRef}
                       >
