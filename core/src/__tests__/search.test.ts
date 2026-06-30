@@ -303,3 +303,58 @@ describe("retrieve — enrichment", () => {
     expect(res[0].isCanonical).toBe(true);
   });
 });
+
+// ── Divergencias corregidas (paridad con el bot) ──
+
+describe("divergencias corregidas (paridad con el bot)", () => {
+  // Snapshot con 2 desaparecidos y 6 reportes que NO contienen la palabra desaparecid*
+  const snapParity: Snapshot = {
+    generatedAt: "t",
+    categories: {
+      desaparecidos: [
+        {
+          category: "desaparecidos",
+          sourceId: "s",
+          externalId: "dp1",
+          titulo: "Carlos Vera",
+          texto: "30 años, Vargas, por localizar",
+        },
+        {
+          category: "desaparecidos",
+          sourceId: "s",
+          externalId: "dp2",
+          titulo: "Luisa Morales",
+          texto: "45 años, La Guaira, por localizar",
+        },
+      ],
+      reportes: Array.from({ length: 6 }, (_, i) => ({
+        category: "reportes",
+        sourceId: "sismo",
+        externalId: `rp${i}`,
+        titulo: `Noticia ${i}`,
+        texto: "Sismo de gran magnitud afectó la región costera",
+      })),
+    },
+  };
+
+  it("Fix 1 — query de solo señales de categoría: retrieve devuelve SOLO desaparecidos (no reportes)", () => {
+    // "desaparecidos" es señal pura → rankKws queda vacío pero kws.length > 0
+    // → los reportes (score=0, target=false) deben ser descartados
+    const res = retrieve("desaparecidos", snapParity, 15);
+    expect(res.length).toBeGreaterThan(0);
+    expect(res.every((i) => i.category === "desaparecidos")).toBe(true);
+    expect(res.filter((i) => i.category === "reportes")).toHaveLength(0);
+  });
+
+  it("Fix 2 — query de solo stopwords: retrieve devuelve []", () => {
+    // "que hay" → keywords() retorna [] → early return
+    const res = retrieve("que hay", snapParity, 15);
+    expect(res).toHaveLength(0);
+  });
+
+  it("Sanity — searchItems sin query incluye todos los ítems usables", () => {
+    // Sin q → kws = [] → el drop-rule NO se activa → todo entra
+    const res = searchItems(snapParity, {});
+    expect(res.length).toBe(8); // 2 desaparecidos + 6 reportes
+  });
+});

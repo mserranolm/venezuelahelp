@@ -54,7 +54,7 @@ function rankPool(snap: Snapshot, params: SearchParams): Scored[] {
       const score = rankKws.length ? scoreFields(item, rankKws) : 0;
       const target = targetCats.has(item.category);
       // Sin query (o sin keywords útiles), todo lo que pasó los filtros entra.
-      if (rankKws.length > 0 && score === 0 && !target) continue;
+      if (kws.length > 0 && score === 0 && !target) continue;
       out.push({ item, score, target });
     }
   }
@@ -83,6 +83,7 @@ export function retrieve(
   snap: Snapshot,
   k = 15,
 ): PublicItem[] {
+  if (keywords(question).length === 0) return [];
   const scored = rankPool(snap, { q: question });
   return selectWithQuota(scored, k).map((s) => s.item);
 }
