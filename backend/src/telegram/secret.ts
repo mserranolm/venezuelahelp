@@ -7,6 +7,9 @@ let cached: string | null = null;
 const SECRET_NAME = "/venezuelahelp/telegram-webhook-secret";
 let cachedSecret: string | null = null;
 
+const DATA_API_KEY_NAME = "/venezuelahelp/bot/data-api-key";
+let cachedDataApiKey: string | null = null;
+
 interface Deps {
   ssm: Pick<SSMClient, "send">;
 }
@@ -35,7 +38,18 @@ export async function getWebhookSecret(deps?: Partial<Deps>): Promise<string> {
   return cachedSecret;
 }
 
+export async function getDataApiKey(deps?: Partial<Deps>): Promise<string> {
+  if (cachedDataApiKey) return cachedDataApiKey;
+  const client = (deps?.ssm as Deps["ssm"]) ?? ssm;
+  const res = await client.send(
+    new GetParameterCommand({ Name: DATA_API_KEY_NAME, WithDecryption: true }),
+  );
+  cachedDataApiKey = res.Parameter?.Value ?? "";
+  return cachedDataApiKey;
+}
+
 export function __resetTokenCache() {
   cached = null;
   cachedSecret = null;
+  cachedDataApiKey = null;
 }
