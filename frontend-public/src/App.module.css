@@ -30,30 +30,51 @@
   }
 }
 
-/* ── Sticky controls (search + chips + result count) ─────────── */
-
+/* ── Controls (search + filters + result count) ──────────────── */
+/* En flujo (relativos): se van solos al hacer scroll hacia abajo. */
 .controls {
-  position: sticky;
-  top: var(--header-h);
-  z-index: 10; /* below header (20), above content */
+  position: relative;
   background: var(--bg);
   padding-block: 12px;
-  /* Bleed to the viewport edges so the sticky background covers full width */
+  /* Bleed to the viewport edges para que el fondo cubra todo el ancho */
   margin-inline: -16px;
   padding-inline: 16px;
   border-bottom: 1px solid var(--border);
-  /* Hide-on-scroll: al bajar se desliza arriba (tras el header); al subir vuelve. */
-  transition: transform 0.25s ease;
+}
+
+/* ── Barra fija de respaldo (headroom): reaparece al subir ───── */
+.revealBar {
+  position: fixed;
+  top: var(--header-h);
+  left: 0;
+  right: 0;
+  z-index: 15; /* sobre el contenido, bajo el header (20) */
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 6px 16px color-mix(in oklab, var(--ink) 12%, transparent);
+  transform: translateY(calc(-100% - var(--header-h)));
+  transition: transform 0.24s ease;
   will-change: transform;
 }
 
-/* Oculta los controles deslizándolos hacia arriba, tucked detrás del header. */
-.controlsHidden {
-  transform: translateY(calc(-100% - var(--header-h)));
+.revealBarShown {
+  transform: translateY(0);
+}
+
+.revealBarInner {
+  max-width: 1100px;
+  margin-inline: auto;
+  padding: 10px 16px 12px;
+}
+
+@media (min-width: 640px) {
+  .revealBarInner {
+    padding-inline: 24px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .controls {
+  .revealBar {
     transition: none;
   }
 }
