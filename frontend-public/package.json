@@ -10,6 +10,7 @@
     "snapshot:pull": "node scripts/pull-snapshot.mjs"
   },
   "dependencies": {
+    "@venezuelahelp/core": "*",
     "@fontsource/inter": "^5.0.0",
     "@phosphor-icons/react": "^2.1.10",
     "leaflet": "^1.9.4",

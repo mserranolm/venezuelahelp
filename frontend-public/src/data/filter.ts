@@ -1,70 +1,44 @@
 import type { Category, Item, Snapshot } from "@/types";
 import { CATEGORY_ORDER } from "./categories";
+import { normalize, filterUsable, searchItems } from "@venezuelahelp/core";
 
-/**
- * Normalize a string for accent-insensitive substring matching.
- * - Lowercase
- * - NFD decomposition + strip combining marks
- * - Collapse whitespace
- * - Trim
- */
-export function normalize(s: string): string {
-  return s
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "") // Strip combining marks
-    .replace(/\s+/g, " ") // Collapse whitespace
-    .trim();
-}
+export { normalize };
 
-/**
- * Flatten all items from a snapshot into a single array, respecting category
- * order. Colapsa duplicados: el enrichment del backend marca cada cluster (misma
- * persona/edificio/texto en una o varias fuentes) con un único canónico; el
- * público muestra SOLO los canónicos (`isCanonical !== false`) para no repetir
- * el mismo hecho. Los snapshots viejos sin marca (`isCanonical` undefined) se
- * tratan como canónicos.
- */
+// Colapsa duplicados (solo canónicos) respetando el orden de categorías.
 export function flatten(snap: Snapshot): Item[] {
   const result: Item[] = [];
   for (const category of CATEGORY_ORDER) {
-    for (const item of snap.categories[category]) {
-      if (item.isCanonical !== false) result.push(item);
+    for (const item of filterUsable(
+      snap.categories[category] ?? [],
+    ) as Item[]) {
+      result.push(item);
     }
   }
   return result;
 }
 
-/**
- * Filter items by query and active categories.
- * - If active set is not empty, only items in active categories are kept.
- * - If query is not empty, only items matching normalized query are kept.
- * - Matches against: titulo + " " + texto + " " + ubicacion.nombre (if present).
- */
+// Filtra por categorías activas (multi-select) + query con el MISMO ranking que
+// el bot/API. Sin query, mantiene el orden de `flatten`.
 export function filterItems(
   items: Item[],
   query: string,
   active: Set<Category>,
 ): Item[] {
-  return items.filter((item) => {
-    // Check category filter
-    if (active.size > 0 && !active.has(item.category)) {
-      return false;
-    }
+  const byCat =
+    active.size > 0 ? items.filter((i) => active.has(i.category)) : items;
+  if (!query.trim()) return byCat;
+  // searchItems espera un Snapshot; envolvemos los ítems ya filtrados por cat.
+  const snap = {
+    generatedAt: "",
+    categories: groupByCategory(byCat),
+  };
+  return searchItems(snap, { q: query }) as Item[];
+}
 
-    // Check query filter
-    if (query) {
-      const normalizedQuery = normalize(query);
-      const searchText = normalize(
-        item.titulo + " " + item.texto + " " + (item.ubicacion?.nombre ?? ""),
-      );
-      if (!searchText.includes(normalizedQuery)) {
-        return false;
-      }
-    }
-
-    return true;
-  });
+function groupByCategory(items: Item[]): Record<string, Item[]> {
+  const out: Record<string, Item[]> = {};
+  for (const it of items) (out[it.category] ??= []).push(it);
+  return out;
 }
 
 /**

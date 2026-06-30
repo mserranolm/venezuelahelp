@@ -243,6 +243,39 @@ describe("filter functions", () => {
       const result = filterItems([], "query", new Set());
       expect(result).toHaveLength(0);
     });
+
+    it("filterItems(items, 'petare', new Set()) returns titulo-match first (ranked by core)", () => {
+      const petareItems: Item[] = [
+        {
+          category: "reportes",
+          sourceId: "py",
+          externalId: "p2",
+          titulo: "Reporte general",
+          texto: "El barrio de Petare sufrió afectaciones",
+        },
+        {
+          category: "reportes",
+          sourceId: "px",
+          externalId: "p1",
+          titulo: "Daños en Petare",
+          texto: "Se reportaron daños en la zona",
+        },
+      ];
+      const result = filterItems(petareItems, "petare", new Set());
+      expect(result).toHaveLength(2);
+      // El match en el título (peso 6) debe vencer al match solo en texto (peso 2).
+      expect(result[0].titulo).toContain("Petare");
+    });
+
+    it("filterItems con active Set filtra por categoría antes de buscar", () => {
+      const result = filterItems(
+        items,
+        "",
+        new Set<Category>(["desaparecidos"]),
+      );
+      expect(result).toHaveLength(1);
+      expect(result[0].category).toBe("desaparecidos");
+    });
   });
 
   describe("countByCategory", () => {
