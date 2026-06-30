@@ -60,6 +60,9 @@ export default function App({ deps = {} }: AppProps) {
   const [stats, setStats] = useState<Stats | null>(null);
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [tgUsers, setTgUsers] = useState<TgUser[] | null>(null);
+  const [busyBlockChatId, setBusyBlockChatId] = useState<number | undefined>(
+    undefined,
+  );
   const [sources, setSources] = useState<Source[] | null>(null);
   const [config, setConfig] = useState<ConfigType | null>(null);
   const [apiRequests, setApiRequests] = useState<ApiAccessRequest[] | null>(
@@ -285,6 +288,23 @@ export default function App({ deps = {} }: AppProps) {
     }
   }
 
+  async function handleToggleBlock(u: TgUser) {
+    if (!apiRef.current) return;
+    setBusyBlockChatId(u.chatId);
+    setError(null);
+    try {
+      await apiRef.current.setTgUserBlocked(u.chatId, !u.blocked);
+      const users = await apiRef.current.getTgUsers();
+      if (mountedRef.current) setTgUsers(users);
+    } catch {
+      if (mountedRef.current) {
+        setError("No se pudo actualizar el bloqueo del usuario.");
+      }
+    } finally {
+      if (mountedRef.current) setBusyBlockChatId(undefined);
+    }
+  }
+
   async function refreshSources() {
     if (!apiRef.current) return;
     const updated = await apiRef.current.getSources();
@@ -466,6 +486,8 @@ export default function App({ deps = {} }: AppProps) {
               users={tgUsers}
               onRefresh={() => void handleRefreshUsers()}
               refreshing={refreshing}
+              onToggleBlock={(u) => void handleToggleBlock(u)}
+              busyChatId={busyBlockChatId}
             />
           ) : (
             <div className={styles.loading} role="status">

@@ -111,6 +111,9 @@ export interface TgUser {
   firstSeenAt: string;
   lastSeenAt: string;
   msgCount: number;
+  strikes?: number;
+  blocked?: boolean;
+  blockedAt?: string;
 }
 
 export interface ApiAccessRequest {

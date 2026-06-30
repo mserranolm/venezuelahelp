@@ -162,3 +162,44 @@
     display: none;
   }
 }
+
+/* Insignias de estado de moderación. */
+.badgeBlocked,
+.badgeWarn,
+.badgeOk {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.badgeBlocked {
+  background: #fde8e8;
+  color: #b42318;
+}
+.badgeWarn {
+  background: #fef0c7;
+  color: #b54708;
+}
+.badgeOk {
+  background: #e6f4ea;
+  color: #1a7f37;
+}
+
+.blockButton {
+  padding: 4px 10px;
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.blockButton:hover {
+  background: #f9fafb;
+}
+.blockButton:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

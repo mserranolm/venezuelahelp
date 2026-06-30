@@ -5,6 +5,10 @@ interface UsersProps {
   users: TgUser[];
   onRefresh?: () => void;
   refreshing?: boolean;
+  // Bloquear/desbloquear un usuario (lista negra del bot). busyChatId marca la
+  // fila en curso para deshabilitar su botón mientras se procesa.
+  onToggleBlock?: (user: TgUser) => void;
+  busyChatId?: number;
 }
 
 function formatTs(iso: string): string {
@@ -32,7 +36,13 @@ function languageName(code?: string): string {
   }
 }
 
-export function Users({ users, onRefresh, refreshing }: UsersProps) {
+export function Users({
+  users,
+  onRefresh,
+  refreshing,
+  onToggleBlock,
+  busyChatId,
+}: UsersProps) {
   return (
     <div className={styles.root}>
       <div className={styles.header}>
@@ -70,6 +80,8 @@ export function Users({ users, onRefresh, refreshing }: UsersProps) {
                 <th scope="col" className={styles.numCol}>
                   Msgs
                 </th>
+                <th scope="col">Estado</th>
+                {onToggleBlock && <th scope="col" aria-label="Acción" />}
               </tr>
             </thead>
             <tbody>
@@ -87,6 +99,33 @@ export function Users({ users, onRefresh, refreshing }: UsersProps) {
                   <td className={styles.cellWhen}>{formatTs(u.firstSeenAt)}</td>
                   <td className={styles.cellWhen}>{formatTs(u.lastSeenAt)}</td>
                   <td className={styles.num}>{u.msgCount}</td>
+                  <td className={styles.cell}>
+                    {u.blocked ? (
+                      <span className={styles.badgeBlocked}>🚫 Bloqueado</span>
+                    ) : u.strikes && u.strikes > 0 ? (
+                      <span className={styles.badgeWarn}>
+                        ⚠️ {u.strikes} strike{u.strikes === 1 ? "" : "s"}
+                      </span>
+                    ) : (
+                      <span className={styles.badgeOk}>Activo</span>
+                    )}
+                  </td>
+                  {onToggleBlock && (
+                    <td className={styles.cell}>
+                      <button
+                        type="button"
+                        className={styles.blockButton}
+                        disabled={busyChatId === u.chatId}
+                        onClick={() => onToggleBlock(u)}
+                      >
+                        {busyChatId === u.chatId
+                          ? "…"
+                          : u.blocked
+                            ? "Desbloquear"
+                            : "Bloquear"}
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

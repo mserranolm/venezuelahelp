@@ -1,7 +1,11 @@
 import { GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
 import { ddb, TABLE_NAME } from "@/shared/ddb";
 import { CONFIG_KEY } from "@/shared/keys";
-import type { Config, EnrichmentConfig } from "@/shared/types";
+import type {
+  Config,
+  EnrichmentConfig,
+  ModerationConfig,
+} from "@/shared/types";
 
 const DEFAULT_ENRICHMENT: EnrichmentConfig = {
   geocerca: { latMin: 0.6, latMax: 12.2, lngMin: -73.4, lngMax: -59.8 },
@@ -13,6 +17,8 @@ const DEFAULT_ENRICHMENT: EnrichmentConfig = {
   minTextLen: 10,
 };
 
+const DEFAULT_MODERATION: ModerationConfig = { maxStrikes: 3 };
+
 const DEFAULT_CONFIG: Config = {
   scrapeRateMin: 30,
   bedrockModelId: "amazon.nova-lite-v1:0",
@@ -20,6 +26,7 @@ const DEFAULT_CONFIG: Config = {
     "Eres un asistente sobre el terremoto de Venezuela. Responde en español, solo con la información provista, cita la fuente y di 'No tengo ese dato' si no hay información relevante.",
   botTriggerMode: "mention",
   enrichment: DEFAULT_ENRICHMENT,
+  moderation: DEFAULT_MODERATION,
 };
 
 export class ConfigRepo {
@@ -35,6 +42,8 @@ export class ConfigRepo {
       botTriggerMode: res.Item.botTriggerMode,
       enrichment:
         (res.Item.enrichment as EnrichmentConfig) ?? DEFAULT_ENRICHMENT,
+      moderation:
+        (res.Item.moderation as ModerationConfig) ?? DEFAULT_MODERATION,
     };
   }
 

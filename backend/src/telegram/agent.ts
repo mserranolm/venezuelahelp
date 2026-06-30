@@ -17,6 +17,12 @@ import type { PublicItem, Snapshot } from "@/telegram/types";
 
 const NO_DATA = "No tengo ese dato.";
 
+// Respuestas fijas (sin Bedrock) para saludo y rechazo de fuera-de-tema.
+export const GREETING =
+  "¡Hola! 👋 Soy el asistente de VenezuelaHelp. Te ayudo con información del terremoto de Venezuela (25 de junio de 2026): reportes, personas desaparecidas, centros de acopio, refugios, hospitales y solicitudes de ayuda. ¿Qué necesitas consultar?";
+export const OFF_TOPIC =
+  "Solo manejo información sobre el terremoto de Venezuela (reportes, desaparecidos, acopios, refugios, hospitales y solicitudes). No puedo ayudarte con eso. ¿Qué te gustaría consultar sobre el terremoto?";
+
 const CATEGORIES = [
   "reportes",
   "desaparecidos",
@@ -74,18 +80,36 @@ const TOOLS: ToolSpec[] = [
       required: ["consulta"],
     },
   },
+  {
+    name: "saludar",
+    description:
+      "El usuario solo saluda, se despide o agradece (p. ej. 'hola', 'buenas', 'gracias', 'cómo estás'). Sin una pregunta sobre datos.",
+    inputSchema: { type: "object", properties: {} },
+  },
+  {
+    name: "fuera_de_tema",
+    description:
+      "El mensaje NO trata sobre el terremoto de Venezuela ni sus datos (reportes, desaparecidos, acopios, refugios, hospitales, solicitudes), o es un insulto/spam/contenido no permitido. P. ej. 'cuéntame un chiste', 'quién ganó el partido', 'háblame de política'.",
+    inputSchema: { type: "object", properties: {} },
+  },
 ];
 
 const ROUTER_SYSTEM =
-  "Eres el enrutador del asistente de VenezuelaHelp (datos del terremoto). Elige la herramienta adecuada para la pregunta del usuario y rellena sus argumentos. 'listar' para enumeraciones/nombres/últimos N; 'contar' para cantidades/totales; 'buscar' para preguntas concretas. No respondas texto, solo llama a una herramienta.";
+  "Eres el enrutador del asistente de VenezuelaHelp (datos del terremoto de Venezuela). Elige la herramienta adecuada para el mensaje del usuario. 'listar' para enumeraciones/nombres/últimos N; 'contar' para cantidades/totales; 'buscar' para preguntas concretas sobre los datos; 'saludar' si solo saluda/agradece/se despide sin preguntar; 'fuera_de_tema' si el mensaje no trata del terremoto de Venezuela o es insulto/spam. No respondas texto, solo llama a una herramienta.";
 
 export interface AgentDeps {
   routeTools: typeof askBedrockToolRouter;
   askBedrock: typeof askBedrock;
 }
 
+// kind clasifica la respuesta para que el handler aplique moderación:
+// "saludo"/"respuesta" resetean strikes; "rechazado" (fuera de tema/no
+// permitido) suma un strike.
+export type AgentKind = "saludo" | "respuesta" | "rechazado";
+
 export interface AgentResult {
   reply: string;
+  kind: AgentKind;
   itemsUsed: string[];
   tokensIn: number;
   tokensOut: number;
@@ -122,12 +146,33 @@ export async function answerWithTools(
   const tokensIn = route.tokensIn;
   const tokensOut = route.tokensOut;
 
+  if (route.name === "saludar") {
+    return {
+      reply: GREETING,
+      kind: "saludo",
+      itemsUsed: [],
+      tokensIn,
+      tokensOut,
+    };
+  }
+
+  if (route.name === "fuera_de_tema") {
+    return {
+      reply: OFF_TOPIC,
+      kind: "rechazado",
+      itemsUsed: [],
+      tokensIn,
+      tokensOut,
+    };
+  }
+
   if (route.name === "contar") {
     return {
       reply: countItems(snap, {
         category: str(args.category),
         zona: str(args.zona),
       }),
+      kind: "respuesta",
       itemsUsed: [],
       tokensIn,
       tokensOut,
@@ -143,6 +188,7 @@ export async function answerWithTools(
     });
     return {
       reply: formatList(category, total, page, zona),
+      kind: "respuesta",
       itemsUsed: page.map((i) => key(i)),
       tokensIn,
       tokensOut,
@@ -158,7 +204,13 @@ export async function answerWithTools(
     if (only.length) items = only;
   }
   if (items.length === 0) {
-    return { reply: NO_DATA, itemsUsed: [], tokensIn, tokensOut };
+    return {
+      reply: NO_DATA,
+      kind: "respuesta",
+      itemsUsed: [],
+      tokensIn,
+      tokensOut,
+    };
   }
   // Búsqueda por nombre/entidad: si la consulta coincide con el TÍTULO de los
   // ítems recuperados (p. ej. el nombre de un desaparecido), la presentamos de
@@ -169,6 +221,7 @@ export async function answerWithTools(
   if (named.length) {
     return {
       reply: formatMatches(named),
+      kind: "respuesta",
       itemsUsed: named.map((i) => key(i)),
       tokensIn,
       tokensOut,
@@ -181,6 +234,7 @@ export async function answerWithTools(
   );
   return {
     reply: ans.text.trim() || NO_DATA,
+    kind: "respuesta",
     itemsUsed: items.map((i) => key(i)),
     tokensIn: tokensIn + ans.tokensIn,
     tokensOut: tokensOut + ans.tokensOut,

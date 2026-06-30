@@ -22,7 +22,7 @@ export interface RouteDeps {
   itemRepo: Pick<ItemRepo, "listByCategory">;
   invokeScraper: () => Promise<void>;
   visitRepo: Pick<VisitRepo, "analytics">;
-  tgUserRepo: Pick<TgUserRepo, "list">;
+  tgUserRepo: Pick<TgUserRepo, "list" | "setBlocked">;
   apiRequestRepo: Pick<ApiRequestRepo, "list" | "get" | "setStatus">;
   apiKeyRepo: Pick<ApiKeyRepo, "list" | "create" | "revoke">;
   // Actor (email Cognito) para el audit de aprobación/revocación, y reloj
@@ -267,8 +267,29 @@ export async function route(
         firstSeenAt: u.firstSeenAt,
         lastSeenAt: u.lastSeenAt,
         msgCount: u.msgCount,
+        strikes: u.strikes ?? 0,
+        blocked: u.blocked ?? false,
+        blockedAt: u.blockedAt ?? undefined,
+        blockReason: u.blockReason ?? undefined,
       })),
     };
+  }
+
+  // POST /tg-users/{chatId}/block  y  /unblock — lista negra del bot
+  const blockM = path.match(/^\/tg-users\/([^/]+)\/(block|unblock)$/);
+  if (method === "POST" && blockM) {
+    const chatId = Number(decodeURIComponent(blockM[1]));
+    const block = blockM[2] === "block";
+    if (!Number.isFinite(chatId)) {
+      return { status: 400, body: { error: "chatId inválido" } };
+    }
+    await deps.tgUserRepo.setBlocked(
+      chatId,
+      block,
+      deps.now(),
+      block ? "Bloqueado desde el admin" : undefined,
+    );
+    return { status: 200, body: { chatId, blocked: block } };
   }
 
   // GET /stats
@@ -382,7 +403,10 @@ export async function route(
     });
     // rawKey viaja UNA vez en la respuesta; el admin la muestra y nunca se vuelve
     // a poder recuperar (en DB solo queda el hash).
-    return { status: 200, body: { request: { ...req, status: "aprobada" }, apiKey, rawKey } };
+    return {
+      status: 200,
+      body: { request: { ...req, status: "aprobada" }, apiKey, rawKey },
+    };
   }
 
   // POST /api-requests/{id}/reject

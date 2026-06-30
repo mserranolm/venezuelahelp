@@ -53,6 +53,28 @@ describe("answerWithTools (agente sobre el JSON)", () => {
     expect(r.itemsUsed.length).toBe(3);
   });
 
+  it("saludar → saludo fijo (kind 'saludo') sin askBedrock", async () => {
+    const askBedrock = vi.fn();
+    const r = await answerWithTools("hola", snap, config, {
+      routeTools: route("saludar", {}),
+      askBedrock,
+    });
+    expect(askBedrock).not.toHaveBeenCalled();
+    expect(r.kind).toBe("saludo");
+    expect(r.reply).toContain("VenezuelaHelp");
+  });
+
+  it("fuera_de_tema → rechazo (kind 'rechazado') sin askBedrock", async () => {
+    const askBedrock = vi.fn();
+    const r = await answerWithTools("cuéntame un chiste", snap, config, {
+      routeTools: route("fuera_de_tema", {}),
+      askBedrock,
+    });
+    expect(askBedrock).not.toHaveBeenCalled();
+    expect(r.kind).toBe("rechazado");
+    expect(r.reply.toLowerCase()).toContain("terremoto");
+  });
+
   it("contar → total agregado sin askBedrock", async () => {
     const askBedrock = vi.fn();
     const r = await answerWithTools("cuántos desaparecidos", snap, config, {

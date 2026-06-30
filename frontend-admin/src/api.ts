@@ -37,6 +37,10 @@ interface Api {
   deleteSource(id: string): Promise<void>;
   getAnalytics(): Promise<Analytics>;
   getTgUsers(): Promise<TgUser[]>;
+  setTgUserBlocked(
+    chatId: number,
+    blocked: boolean,
+  ): Promise<{ chatId: number; blocked: boolean }>;
   getApiRequests(): Promise<ApiAccessRequest[]>;
   approveApiRequest(id: string): Promise<ApproveResult>;
   rejectApiRequest(id: string): Promise<void>;
@@ -135,6 +139,13 @@ export function createApi(
 
     getTgUsers(): Promise<TgUser[]> {
       return request<TgUser[]>("/tg-users", "GET");
+    },
+
+    setTgUserBlocked(chatId: number, blocked: boolean) {
+      return request<{ chatId: number; blocked: boolean }>(
+        `/tg-users/${chatId}/${blocked ? "block" : "unblock"}`,
+        "POST",
+      );
     },
 
     getApiRequests(): Promise<ApiAccessRequest[]> {

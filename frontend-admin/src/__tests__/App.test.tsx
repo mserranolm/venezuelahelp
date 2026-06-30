@@ -99,6 +99,7 @@ function buildMockApi() {
     rejectApiRequest: vi.fn().mockResolvedValue(undefined),
     getApiKeys: vi.fn().mockResolvedValue([]),
     revokeApiKey: vi.fn().mockResolvedValue(undefined),
+    setTgUserBlocked: vi.fn().mockResolvedValue({ chatId: 1, blocked: true }),
   };
 }
 

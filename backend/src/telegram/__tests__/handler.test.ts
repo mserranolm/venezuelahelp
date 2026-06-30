@@ -33,7 +33,13 @@ function deps(over = {}) {
     },
     qaLogRepo: { append: vi.fn(async () => {}) },
     rateLimit: { hit: vi.fn(async () => ({ allowed: true, count: 1 })) },
-    tgUserRepo: { upsert: vi.fn(async () => {}) },
+    tgUserRepo: {
+      upsert: vi.fn(async () => {}),
+      get: vi.fn(async () => null),
+      recordStrike: vi.fn(async () => 1),
+      resetStrikes: vi.fn(async () => {}),
+      setBlocked: vi.fn(async () => {}),
+    },
     loadSnapshot: vi.fn(async () => snap),
     askBedrock: vi.fn(async () => ({
       text: "Hay acopio en Chacao.",
@@ -387,6 +393,96 @@ describe("telegram handler", () => {
     const reply = (d.sendMessage as any).mock.calls[0][2] as string;
     expect(reply).toContain("2");
     expect(reply).toContain("personas desaparecidas");
+  });
+
+  it("saludo puro 'hola' → saludo fijo, sin router ni Bedrock", async () => {
+    const d = deps();
+    await handler(
+      event("hola", { chat: { id: 9, type: "private" } }),
+      d as any,
+    );
+    expect(d.routeTools).not.toHaveBeenCalled();
+    expect(d.askBedrock).not.toHaveBeenCalled();
+    const reply = (d.sendMessage as any).mock.calls[0][2] as string;
+    expect(reply).toContain("VenezuelaHelp");
+  });
+
+  it("usuario bloqueado → aviso de bloqueo, sin router ni Bedrock", async () => {
+    const d = deps({
+      tgUserRepo: {
+        upsert: vi.fn(async () => {}),
+        get: vi.fn(async () => ({ chatId: 9, blocked: true })),
+        recordStrike: vi.fn(async () => 0),
+        resetStrikes: vi.fn(async () => {}),
+        setBlocked: vi.fn(async () => {}),
+      },
+    });
+    await handler(
+      event("dónde hay agua", { chat: { id: 9, type: "private" } }),
+      d as any,
+    );
+    expect(d.routeTools).not.toHaveBeenCalled();
+    expect(d.askBedrock).not.toHaveBeenCalled();
+    const reply = (d.sendMessage as any).mock.calls[0][2] as string;
+    expect(reply.toLowerCase()).toContain("bloqueado");
+  });
+
+  it("fuera de tema con strikes < max → aviso + strike, sin bloquear", async () => {
+    const setBlocked = vi.fn(async () => {});
+    const d = deps({
+      tgUserRepo: {
+        upsert: vi.fn(async () => {}),
+        get: vi.fn(async () => null),
+        recordStrike: vi.fn(async () => 1),
+        resetStrikes: vi.fn(async () => {}),
+        setBlocked,
+      },
+      routeTools: vi.fn(async () => ({
+        name: "fuera_de_tema",
+        input: {},
+        tokensIn: 1,
+        tokensOut: 1,
+      })),
+    });
+    await handler(
+      event("cuéntame un chiste", { chat: { id: 9, type: "private" } }),
+      d as any,
+    );
+    expect((d.tgUserRepo as any).recordStrike).toHaveBeenCalled();
+    expect(setBlocked).not.toHaveBeenCalled();
+    const reply = (d.sendMessage as any).mock.calls[0][2] as string;
+    expect(reply.toLowerCase()).toContain("terremoto");
+  });
+
+  it("fuera de tema que alcanza el umbral → bloquea + aviso de bloqueo", async () => {
+    const setBlocked = vi.fn(async () => {});
+    const d = deps({
+      tgUserRepo: {
+        upsert: vi.fn(async () => {}),
+        get: vi.fn(async () => ({ chatId: 9, strikes: 2 })),
+        recordStrike: vi.fn(async () => 3),
+        resetStrikes: vi.fn(async () => {}),
+        setBlocked,
+      },
+      routeTools: vi.fn(async () => ({
+        name: "fuera_de_tema",
+        input: {},
+        tokensIn: 1,
+        tokensOut: 1,
+      })),
+    });
+    await handler(
+      event("otra vez fuera de tema", { chat: { id: 9, type: "private" } }),
+      d as any,
+    );
+    expect(setBlocked).toHaveBeenCalledWith(
+      9,
+      true,
+      expect.any(String),
+      expect.any(String),
+    );
+    const reply = (d.sendMessage as any).mock.calls[0][2] as string;
+    expect(reply.toLowerCase()).toContain("bloqueado");
   });
 
   it("lista ítems sobre todo el snapshot (issue: listar) sin Bedrock", async () => {

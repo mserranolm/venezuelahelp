@@ -98,12 +98,19 @@ export interface ItemEnrichment {
   trustReasons: string[];
 }
 
+// Moderación del bot: cuántos mensajes fuera de tema / no permitidos seguidos
+// (strikes) se toleran antes de bloquear al usuario. Editable sin deploy.
+export interface ModerationConfig {
+  maxStrikes: number;
+}
+
 export interface Config {
   scrapeRateMin: number;
   bedrockModelId: string;
   systemPrompt: string;
   botTriggerMode: "mention" | "command" | "all";
   enrichment: EnrichmentConfig;
+  moderation: ModerationConfig;
 }
 
 // Solicitud de acceso al API público para terceros. La crea el form público;

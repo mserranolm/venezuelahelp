@@ -56,6 +56,7 @@ function makeDeps(overrides: Partial<RouteDeps> = {}): RouteDeps {
           msgCount: 4,
         },
       ]),
+      setBlocked: vi.fn().mockResolvedValue(undefined),
     },
     ...overrides,
   };
@@ -69,6 +70,51 @@ describe("admin-api router", () => {
       expect(result.status).toBe(200);
       expect(result.body).toEqual(mockConfig);
       expect(deps.configRepo.get).toHaveBeenCalledOnce();
+    });
+  });
+
+  describe("tg-users moderación", () => {
+    it("GET /tg-users expone blocked/strikes (default false/0)", async () => {
+      const deps = makeDeps();
+      const result = await route("GET", "/tg-users", null, deps);
+      expect(result.status).toBe(200);
+      const u = (result.body as Array<Record<string, unknown>>)[0];
+      expect(u.blocked).toBe(false);
+      expect(u.strikes).toBe(0);
+    });
+
+    it("POST /tg-users/{id}/block bloquea al usuario", async () => {
+      const setBlocked = vi.fn().mockResolvedValue(undefined);
+      const deps = makeDeps({
+        tgUserRepo: { list: vi.fn(), setBlocked },
+        now: () => "2026-06-30T00:00:00Z",
+      });
+      const result = await route("POST", "/tg-users/7/block", null, deps);
+      expect(result.status).toBe(200);
+      expect(result.body).toEqual({ chatId: 7, blocked: true });
+      expect(setBlocked).toHaveBeenCalledWith(
+        7,
+        true,
+        expect.any(String),
+        expect.any(String),
+      );
+    });
+
+    it("POST /tg-users/{id}/unblock desbloquea al usuario", async () => {
+      const setBlocked = vi.fn().mockResolvedValue(undefined);
+      const deps = makeDeps({
+        tgUserRepo: { list: vi.fn(), setBlocked },
+        now: () => "2026-06-30T00:00:00Z",
+      });
+      const result = await route("POST", "/tg-users/7/unblock", null, deps);
+      expect(result.status).toBe(200);
+      expect(result.body).toEqual({ chatId: 7, blocked: false });
+      expect(setBlocked).toHaveBeenCalledWith(
+        7,
+        false,
+        expect.any(String),
+        undefined,
+      );
     });
   });
 

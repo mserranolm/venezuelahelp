@@ -14,8 +14,13 @@ import {
   askBedrock as realAsk,
   askBedrockToolRouter as realRoute,
 } from "@/telegram/bedrock";
-import { retrieve, countAnswer, isHelpRequest } from "@/telegram/retrieval";
-import { answerWithTools } from "@/telegram/agent";
+import {
+  normalize,
+  retrieve,
+  countAnswer,
+  isHelpRequest,
+} from "@/telegram/retrieval";
+import { answerWithTools, GREETING } from "@/telegram/agent";
 import { buildUserText } from "@/telegram/prompt";
 import {
   shouldRespond,
@@ -50,6 +55,18 @@ const HELP_GUIDE = [
   "⚠️ Si hay riesgo de vida, llama a emergencias (171).",
 ].join("\n");
 
+const BLOCKED_MSG =
+  "🚫 Estás bloqueado y no puedo responder tus consultas. Si crees que es un error, contacta a los creadores de VenezuelaHelp para que te desbloqueen.";
+
+// Saludos PUROS (el mensaje completo es el saludo): pre-check determinista para
+// no depender del LLM en lo más común. Un mensaje mixto ("hola, necesito agua")
+// NO matchea (ancla a fin) y va al router, que lo clasifica como pregunta.
+const GREET_ONLY =
+  /^(hola|holas|ola|buenas|buenos dias|buenas tardes|buenas noches|buen dia|hey|hello|saludos|que tal|como estas|gracias)[\s]*$/;
+function isGreeting(question: string): boolean {
+  return GREET_ONLY.test(normalize(question));
+}
+
 const FRESH_MS = 60 * 60 * 1000;
 
 let botUsernameCache: string | null = null;
@@ -61,7 +78,10 @@ interface Deps {
   configRepo: Pick<ConfigRepo, "get">;
   qaLogRepo: Pick<QaLogRepo, "append">;
   rateLimit: Pick<RateLimitRepo, "hit">;
-  tgUserRepo: Pick<TgUserRepo, "upsert">;
+  tgUserRepo: Pick<
+    TgUserRepo,
+    "upsert" | "get" | "recordStrike" | "resetStrikes" | "setBlocked"
+  >;
   menuState: Pick<
     MenuStateRepo,
     "get" | "setPending" | "setLocation" | "clearPending"
@@ -96,6 +116,68 @@ async function safeGetState(d: Deps, chatId: number): Promise<MenuState> {
       error: e instanceof Error ? e.message : String(e),
     });
     return {};
+  }
+}
+
+// Moderación tolerante a fallos: un error de DynamoDB no debe romper la
+// respuesta. Lectura fail-open (ante error, tratamos al usuario como NO
+// bloqueado para no penalizar a usuarios legítimos por un fallo de infra).
+async function safeGetTgUser(d: Deps, chatId: number) {
+  try {
+    return await d.tgUserRepo.get(chatId);
+  } catch (e) {
+    logger.warn("no se pudo leer el usuario de Telegram", {
+      chatId,
+      error: e instanceof Error ? e.message : String(e),
+    });
+    return null;
+  }
+}
+
+async function safeRecordStrike(d: Deps, chatId: number): Promise<number> {
+  try {
+    return await d.tgUserRepo.recordStrike(chatId);
+  } catch (e) {
+    logger.warn("no se pudo registrar el strike", {
+      chatId,
+      error: e instanceof Error ? e.message : String(e),
+    });
+    return 0; // ante error, no escalamos al bloqueo
+  }
+}
+
+async function safeResetStrikes(d: Deps, chatId: number): Promise<void> {
+  try {
+    await d.tgUserRepo.resetStrikes(chatId);
+  } catch (e) {
+    logger.warn("no se pudo resetear strikes", {
+      chatId,
+      error: e instanceof Error ? e.message : String(e),
+    });
+  }
+}
+
+async function safeBlock(
+  d: Deps,
+  chatId: number,
+  reason: string,
+): Promise<void> {
+  try {
+    await d.tgUserRepo.setBlocked(
+      chatId,
+      true,
+      new Date().toISOString(),
+      reason,
+    );
+    logger.warn("usuario de Telegram bloqueado por moderación", {
+      chatId,
+      reason,
+    });
+  } catch (e) {
+    logger.warn("no se pudo bloquear al usuario", {
+      chatId,
+      error: e instanceof Error ? e.message : String(e),
+    });
   }
 }
 
@@ -221,30 +303,79 @@ export async function handler(
       return ok();
     }
 
-    const question = extractQuestion(msg, botUsername);
-    const snap = await d.loadSnapshot();
-
-    // "Cómo pedir ayuda": guía fija (pre-check barato y fiable).
-    if (isHelpRequest(question)) {
-      await d.sendMessage(token, chatId, HELP_GUIDE);
-      await logQa(d, chatId, question, HELP_GUIDE, [], config.bedrockModelId, 0, 0);
+    // Usuario bloqueado: no procesamos su consulta (sin Bedrock), solo el aviso.
+    const tgUser = await safeGetTgUser(d, chatId);
+    if (tgUser?.blocked) {
+      await d.sendMessage(token, chatId, BLOCKED_MSG);
       return ok();
     }
 
-    // Agente: el modelo enruta la pregunta a una herramienta (contar/listar/
-    // buscar) que opera sobre el snapshot COMPLETO. Si el tool-use falla
-    // (p. ej. el modelo no lo soporta de forma fiable), degradamos al RAG.
+    const question = extractQuestion(msg, botUsername);
+
+    // Saludo puro ("hola", "buenas"): respuesta fija sin LLM; rompe la insistencia.
+    if (isGreeting(question)) {
+      await d.sendMessage(token, chatId, GREETING);
+      await safeResetStrikes(d, chatId);
+      await logQa(
+        d,
+        chatId,
+        question,
+        GREETING,
+        [],
+        config.bedrockModelId,
+        0,
+        0,
+      );
+      return ok();
+    }
+
+    const snap = await d.loadSnapshot();
+
+    // "Cómo pedir ayuda": guía fija (pre-check barato y fiable; on-topic).
+    if (isHelpRequest(question)) {
+      await d.sendMessage(token, chatId, HELP_GUIDE);
+      await safeResetStrikes(d, chatId);
+      await logQa(
+        d,
+        chatId,
+        question,
+        HELP_GUIDE,
+        [],
+        config.bedrockModelId,
+        0,
+        0,
+      );
+      return ok();
+    }
+
+    // Agente: el modelo enruta el mensaje a una herramienta (saludar/
+    // fuera_de_tema/contar/listar/buscar) sobre el snapshot COMPLETO. Aplica
+    // moderación según el tipo de respuesta. Si el tool-use falla, degradamos
+    // al RAG (sin moderación).
     try {
       const r = await answerWithTools(question, snap, config, {
         routeTools: d.routeTools,
         askBedrock: d.askBedrock,
       });
-      await d.sendMessage(token, chatId, r.reply);
+      let reply = r.reply;
+      if (r.kind === "rechazado") {
+        // Fuera de tema / no permitido: suma un strike; al umbral, bloquea.
+        const strikes = await safeRecordStrike(d, chatId);
+        const max = config.moderation?.maxStrikes ?? 3;
+        if (strikes >= max) {
+          await safeBlock(d, chatId, "Mensajes fuera de tema repetidos");
+          reply = BLOCKED_MSG;
+        }
+      } else {
+        // Saludo o respuesta válida (on-topic): rompe la racha de strikes.
+        await safeResetStrikes(d, chatId);
+      }
+      await d.sendMessage(token, chatId, reply);
       await logQa(
         d,
         chatId,
         question,
-        r.reply,
+        reply,
         r.itemsUsed,
         config.bedrockModelId,
         r.tokensIn,
@@ -268,7 +399,16 @@ export async function handler(
     const items = retrieve(question, snap);
     if (items.length === 0) {
       await d.sendMessage(token, chatId, NO_DATA);
-      await logQa(d, chatId, question, NO_DATA, [], config.bedrockModelId, 0, 0);
+      await logQa(
+        d,
+        chatId,
+        question,
+        NO_DATA,
+        [],
+        config.bedrockModelId,
+        0,
+        0,
+      );
       return ok();
     }
     const ans = await d.askBedrock(
