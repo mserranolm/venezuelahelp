@@ -1296,15 +1296,22 @@ git commit -m "🏗️ feat(infra): add BotStack (HTTP API webhook + Lambda + be
 
 - [ ] **Step 3 (requiere AWS): deploy** — `npx cdk deploy VenezuelaHelpBotStack --profile VenezuelaHelp --require-approval never`. Anota el output `WebhookUrl`.
 
-- [ ] **Step 4: Registrar el webhook en Telegram** — leyendo el token de SSM (no lo imprimas):
+- [ ] **Step 4: Registrar el webhook en Telegram** — usa el script idempotente
+      (lee token y secret de SSM, no los imprime):
 
 ```bash
-TOKEN=$(aws ssm get-parameter --name /venezuelahelp/telegram-token --with-decryption --profile VenezuelaHelp --region us-east-1 --query "Parameter.Value" --output text)
-curl -s "https://api.telegram.org/bot${TOKEN}/setWebhook" -d "url=<WEBHOOK_URL>" ; echo
-curl -s "https://api.telegram.org/bot${TOKEN}/getWebhookInfo" | python3 -m json.tool
+scripts/set-telegram-webhook.sh        # toma la URL del output WebhookUrl del BotStack
+# o:  scripts/set-telegram-webhook.sh https://<api>/webhook
 ```
 
-Expected: `setWebhook` → `{"ok":true,...}` y `getWebhookInfo` muestra la URL.
+> ⚠️ **`allowed_updates` DEBE incluir `"callback_query"`** además de `"message"`,
+> o Telegram no entrega los toques de los botones inline del menú y los botones
+> "no responden" (issue #16). El script ya lo hace; si registras a mano, incluye
+> `--data-urlencode 'allowed_updates=["message","callback_query"]'` y el
+> `secret_token`.
+
+Expected: `setWebhook` → `{"ok":true,...}` y `getWebhookInfo` muestra
+`allowed_updates: ['message', 'callback_query']`.
 
 - [ ] **Step 5: Smoke test** — el usuario agrega el bot a un grupo y lo @menciona con una pregunta (p. ej. "@vh_bot ¿dónde hay acopios?").
   - **Si Bedrock ya tiene cupo:** el bot responde citando la fuente.
