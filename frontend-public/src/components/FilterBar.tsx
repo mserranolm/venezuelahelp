@@ -1,6 +1,4 @@
-import { useState } from "react";
 import type { Category } from "@/types";
-import { Funnel, CaretDown } from "@phosphor-icons/react";
 import { CATEGORY_META, CATEGORY_ORDER } from "@/data/categories";
 import styles from "./FilterBar.module.css";
 
@@ -15,8 +13,6 @@ interface FilterBarProps {
   onClear: () => void;
 }
 
-const CHIPS_ID = "filter-chips";
-
 export default function FilterBar({
   query,
   onQuery,
@@ -27,7 +23,6 @@ export default function FilterBar({
   total,
   onClear,
 }: FilterBarProps) {
-  const [open, setOpen] = useState(false);
   const hasFilters = query.trim().length > 0 || active.size > 0;
 
   return (
@@ -41,49 +36,36 @@ export default function FilterBar({
         onChange={(e) => onQuery(e.target.value)}
       />
 
-      {/* Mobile-only collapse trigger (hidden on desktop via CSS) */}
-      <button
-        type="button"
-        className={styles.filtersToggle}
-        aria-expanded={open}
-        aria-controls={CHIPS_ID}
-        onClick={() => setOpen((v) => !v)}
-      >
-        <Funnel aria-hidden="true" size={16} weight="fill" />
-        Filtros
-        {active.size > 0 && (
-          <span className={styles.filtersCount}>{active.size}</span>
-        )}
-        <CaretDown
-          className={`${styles.caret} ${open ? styles.caretOpen : ""}`}
-          aria-hidden="true"
-          size={14}
-          weight="bold"
-        />
-      </button>
+      <p className={styles.cardsHeader}>
+        Filtra las necesidades de ayuda por categoría
+      </p>
 
+      {/* Tarjetas de categoría: visibles por defecto (también en móvil) dentro
+          de un contenedor con scroll vertical. */}
       <div
-        id={CHIPS_ID}
-        className={`${styles.chips} ${open ? styles.chipsOpen : ""}`}
+        className={styles.cards}
         role="group"
         aria-label="Filtrar por categoría"
       >
         {CATEGORY_ORDER.map((cat) => {
           const meta = CATEGORY_META[cat];
+          const Icon = meta.icon;
           const isActive = active.has(cat);
           const colorVar = `var(${meta.colorVar})`;
           return (
             <button
               key={cat}
               type="button"
-              className={`${styles.chip} ${isActive ? styles.chipActive : ""}`}
+              className={`${styles.card} ${isActive ? styles.cardActive : ""}`}
               aria-pressed={isActive}
               onClick={() => onToggle(cat)}
-              style={{ "--chip-color": colorVar } as React.CSSProperties}
+              style={{ "--card-color": colorVar } as React.CSSProperties}
             >
-              <span className={styles.chipDot} aria-hidden="true" />
-              <span className={styles.chipLabel}>{meta.label}</span>
-              <span className={styles.chipCount}>{counts[cat]}</span>
+              <span className={styles.cardIcon} aria-hidden="true">
+                <Icon size={26} weight="duotone" />
+              </span>
+              <span className={styles.cardLabel}>{meta.label}</span>
+              <span className={styles.cardCount}>{counts[cat]}</span>
             </button>
           );
         })}

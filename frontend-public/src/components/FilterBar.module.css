@@ -32,153 +32,120 @@
   -webkit-appearance: none;
 }
 
-/* ── Collapse trigger (mobile only) ─────────────────────────── */
+/* ── Category cards ─────────────────────────────────────────── */
 
-.filtersToggle {
-  display: inline-flex;
+.cardsHeader {
+  margin: 2px 0 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Grilla de tarjetas, visible por defecto (también en móvil), con scroll
+   vertical dentro del contenedor para que no empuje toda la página. */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  max-height: 248px; /* ~2 filas en móvil → el resto se ve con scroll vertical */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 2px; /* aire para el anillo de foco */
+  margin: -2px;
+}
+
+@media (min-width: 480px) {
+  .cards {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 768px) {
+  .cards {
+    grid-template-columns: repeat(6, 1fr);
+    max-height: none; /* en desktop hay sitio: sin scroll interno */
+    overflow: visible;
+  }
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  align-self: flex-start;
-  min-height: 40px;
-  padding: 0 14px;
-  font-family: var(--font-sans, system-ui, sans-serif);
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--ink);
-  background: var(--surface);
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
+  min-height: 104px;
+  padding: 14px 8px;
+  text-align: center;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm);
   cursor: pointer;
-  transition: border-color 140ms ease;
+  transition:
+    border-color 140ms ease,
+    transform 120ms ease,
+    background 140ms ease;
 }
 
-.filtersToggle:hover {
-  border-color: var(--primary);
+.card:hover {
+  border-color: color-mix(
+    in oklab,
+    var(--card-color) 45%,
+    var(--border-strong)
+  );
+  transform: translateY(-1px);
 }
 
-.filtersToggle:focus-visible {
+.card:active {
+  transform: scale(0.98);
+}
+
+.card:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
-.filtersCount {
+.cardIcon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  font-size: 0.6875rem;
-  font-weight: 700;
-  color: var(--on-primary);
-  background: var(--primary);
-  border-radius: 999px;
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  color: var(--card-color);
+  background: color-mix(in oklab, var(--card-color) 16%, white);
 }
 
-.caret {
-  transition: transform 160ms ease;
-}
-
-.caretOpen {
-  transform: rotate(180deg);
-}
-
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-/* Desktop: chips always visible, no collapse trigger */
-@media (min-width: 768px) {
-  .filtersToggle {
-    display: none;
-  }
-}
-
-/* Mobile: chips collapse behind the "Filtros" trigger */
-@media (max-width: 767px) {
-  .chips:not(.chipsOpen) {
-    display: none;
-  }
-}
-
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  /* ≥40px tall touch target on every viewport (mobile-first) */
-  min-height: 40px;
-  padding: 0 14px;
-  font-family: var(--font-sans, system-ui, sans-serif);
-  font-size: 0.75rem;
+.cardLabel {
+  font-size: 0.8rem;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-  color: var(--ink);
-  background: transparent;
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
-  cursor: pointer;
-  transition:
-    background 140ms ease,
-    border-color 140ms ease,
-    color 140ms ease;
+  line-height: 1.2;
+  color: var(--ink-strong);
 }
 
-/* Hover preview: a light tint of the chip's own category color (--chip-color
-   set inline per chip). Mixed in oklab so the hue stays true. */
-.chip:hover {
-  background: color-mix(in oklab, var(--chip-color) 12%, var(--bg));
-  border-color: color-mix(
-    in oklab,
-    var(--chip-color) 45%,
-    var(--border-strong)
-  );
-}
-
-/* Selected: primary tint background + primary border */
-.chipActive {
-  background: var(--primary-tint);
-  border-color: var(--primary);
-  color: var(--primary-strong);
-}
-
-.chipActive:hover {
-  background: color-mix(in oklab, var(--primary-tint) 80%, var(--primary));
-}
-
-.chip:active {
-  transform: scale(0.97);
-}
-
-.chip:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 2px;
-}
-
-.chipDot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex: none;
-  background: var(--chip-color);
-}
-
-.chipLabel {
-  line-height: 1;
-}
-
-/* Count badge inside each chip — inherits chip text color via currentColor */
-.chipCount {
+.cardCount {
   font-family: ui-monospace, monospace;
-  font-size: 0.6875rem;
+  font-size: 0.68rem;
   font-weight: 700;
-  line-height: 1;
-  padding: 2px 6px;
+  color: var(--muted);
+  background: var(--surface);
+  padding: 1px 8px;
   border-radius: 999px;
-  background: color-mix(in oklab, currentColor 14%, transparent);
+}
+
+/* Seleccionada: borde + tinte del color de la categoría. */
+.cardActive {
+  border-color: var(--card-color);
+  background: color-mix(in oklab, var(--card-color) 8%, var(--bg));
+}
+
+.cardActive .cardCount {
+  color: var(--card-color);
+  background: color-mix(in oklab, var(--card-color) 16%, white);
 }
 
 /* ── Results feedback row ─────────────────────────────────────── */
@@ -232,13 +199,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .chip,
-  .search,
-  .filtersToggle,
-  .caret {
+  .card,
+  .search {
     transition: none;
   }
-  .chip:active {
+  .card:hover,
+  .card:active {
     transform: none;
   }
 }
