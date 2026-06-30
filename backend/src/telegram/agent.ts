@@ -4,7 +4,8 @@ import {
   type ToolSpec,
 } from "@/telegram/bedrock";
 import { retrieve } from "@/telegram/retrieval";
-import { listItems, formatList, countItems } from "@/telegram/query";
+import { listItems, countItems } from "@venezuelahelp/core";
+import { formatList } from "@/telegram/format";
 import { buildUserText } from "@/telegram/prompt";
 import type { PublicItem, Snapshot } from "@/telegram/types";
 
@@ -59,7 +60,8 @@ const TOOLS: ToolSpec[] = [
       properties: {
         consulta: {
           type: "string",
-          description: "La consulta de búsqueda (palabras clave o la pregunta).",
+          description:
+            "La consulta de búsqueda (palabras clave o la pregunta).",
         },
         category: { type: "string", enum: CATEGORIES },
       },
@@ -84,7 +86,9 @@ export interface AgentResult {
 }
 
 function asObj(input: unknown): Record<string, unknown> {
-  return input && typeof input === "object" ? (input as Record<string, unknown>) : {};
+  return input && typeof input === "object"
+    ? (input as Record<string, unknown>)
+    : {};
 }
 function str(v: unknown): string | undefined {
   return typeof v === "string" && v.trim() ? v.trim() : undefined;
@@ -114,7 +118,10 @@ export async function answerWithTools(
 
   if (route.name === "contar") {
     return {
-      reply: countItems(snap, { category: str(args.category), zona: str(args.zona) }),
+      reply: countItems(snap, {
+        category: str(args.category),
+        zona: str(args.zona),
+      }),
       itemsUsed: [],
       tokensIn,
       tokensOut,

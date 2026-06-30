@@ -1,203 +1,32 @@
-import type { PublicItem, Snapshot } from "@/telegram/types";
+import { normalize, countItems, inferCategories } from "@venezuelahelp/core";
+import type { Snapshot } from "@/telegram/types";
 
-const STOP = new Set([
-  "que",
-  "donde",
-  "como",
-  "cual",
-  "cuales",
-  "hay",
-  "los",
-  "las",
-  "del",
-  "para",
-  "con",
-  "una",
-  "uno",
-  "por",
-  "qué",
-  "dónde",
-  "cómo",
-  "the",
-  "and",
-  "está",
-  "estan",
-  "este",
-  "esta",
-  "esto",
-  "tengo",
-  "necesito",
-  "puedo",
-]);
+// Re-export para compatibilidad de imports internos del bot.
+export {
+  normalize,
+  keywords,
+  inferCategories,
+  CATEGORY_SIGNALS,
+  CAT_LABEL,
+  scoreFields,
+  retrieve,
+  categoryStat,
+  plural,
+} from "@venezuelahelp/core";
 
-export function normalize(s: string): string {
-  return (s ?? "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[^a-z0-9\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-// Recorta sufijos de plural/género para que una keyword en plural ("edificios",
-// "desaparecidos") matchee datos en singular u otro género ("edificio",
-// "desaparecida"). Solo se aplica a palabras suficientemente largas para no
-// generar raíces ambiguas.
-function stem(w: string): string {
-  if (w.length < 5) return w;
-  for (const suf of ["os", "as", "es"]) {
-    if (w.endsWith(suf)) return w.slice(0, -2);
-  }
-  if (w.endsWith("s")) return w.slice(0, -1);
-  return w;
-}
-
-function keywords(q: string): string[] {
-  return normalize(q)
-    .split(" ")
-    .filter((w) => w.length >= 3 && !STOP.has(w))
-    .map(stem);
-}
-
-// Señales léxicas que delatan a qué categoría apunta la pregunta. Se evalúan
-// sobre la pregunta normalizada COMPLETA (no sobre las keywords filtradas),
-// porque varias señales ("necesito") son stopwords para el scoring.
-const CATEGORY_SIGNALS: Record<string, string[]> = {
-  desaparecidos: [
-    "desaparecid",
-    "perdid",
-    "buscando",
-    "busco",
-    "localizar",
-    "paradero",
-    "encontrar",
-  ],
-  acopios: [
-    "acopio",
-    "donar",
-    "donacion",
-    "donativo",
-    "recolecta",
-    "entregar",
-    "llevar",
-    "colaborar",
-  ],
-  edificios: [
-    "edificio",
-    "residencia",
-    "torre",
-    "colaps",
-    "grieta",
-    "estructura",
-    "inmueble",
-    "vivienda",
-  ],
-  solicitudes: [
-    "solicit",
-    "necesit",
-    "requier",
-    "hace falta",
-    "urge",
-    "ayuda con",
-  ],
-  reportes: [
-    "noticia",
-    "reporte",
-    "cifra",
-    "muert",
-    "fallecid",
-    "herid",
-    "balance",
-    "victima",
-  ],
-  hospitales: [
-    "hospital",
-    "clinic",
-    "ambulatori",
-    "centro de salud",
-    "emergencia",
-    "cama",
-    "ingresad",
-    "atencion medica",
-    "salud",
-  ],
-};
-
-export function inferCategories(question: string): Set<string> {
-  const q = normalize(question);
-  const hit = new Set<string>();
-  for (const [cat, signals] of Object.entries(CATEGORY_SIGNALS)) {
-    if (signals.some((s) => q.includes(s))) hit.add(cat);
-  }
-  return hit;
-}
-
-// Etiquetas legibles por categoría para las respuestas de conteo del bot.
-export const CAT_LABEL: Record<string, string> = {
-  reportes: "reportes",
-  desaparecidos: "personas desaparecidas",
-  acopios: "centros de acopio",
-  edificios: "edificios dañados",
-  solicitudes: "solicitudes de ayuda",
-  hospitales: "hospitales",
-};
-
-export function plural(n: number, sing: string, plu: string): string {
-  return `${n.toLocaleString("es")} ${n === 1 ? sing : plu}`;
-}
-
-export function categoryStat(items: PublicItem[]): {
-  count: number;
-  sources: number;
-} {
-  // Cuenta solo ítems usables: excluye sospechosos y duplicados (no canónicos),
-  // para no inflar el total contando la misma entidad varias veces.
-  const valid = items.filter(
-    (i) => i.trust !== "sospechoso" && i.isCanonical !== false,
-  );
-  return {
-    count: valid.length,
-    sources: new Set(valid.map((i) => i.sourceId)).size,
-  };
-}
-
-// Preguntas de conteo/agregado ("cuántos", "número", "total", "cantidad"). El
-// RAG normal solo ve una muestra (k ítems), así que NO puede dar un total: aquí
-// lo respondemos de forma determinista sumando el snapshot completo y agregando
-// TODAS las fuentes de la categoría. Devuelve null si no es pregunta de conteo.
+// --- Conteo determinista (formato de respuesta del bot) ---
 export function countAnswer(question: string, snap: Snapshot): string | null {
   const n = normalize(question);
   const isCount = ["cuant", "numero", "cantidad", "total"].some((s) =>
     n.includes(s),
   );
   if (!isCount) return null;
-
-  const entries = Object.entries(snap.categories) as [string, PublicItem[]][];
   const targets = inferCategories(question);
-
-  if (targets.size === 1) {
-    const [cat, items] = entries.find(([c]) => targets.has(c)) ?? ["", []];
-    const { count, sources } = categoryStat(items ?? []);
-    const label = CAT_LABEL[cat] ?? cat;
-    return `Hay ${plural(count, "registro", "registros")} de ${label} en total (de ${plural(sources, "fuente", "fuentes")}).`;
-  }
-
-  const cats = targets.size > 0 ? entries.filter(([c]) => targets.has(c)) : entries;
-  const lines = cats
-    .map(([cat, items]) => [cat, items, categoryStat(items)] as const)
-    .filter(([, , s]) => s.count > 0)
-    .map(
-      ([cat, , s]) =>
-        `• ${CAT_LABEL[cat] ?? cat}: ${s.count.toLocaleString("es")} (${plural(s.sources, "fuente", "fuentes")})`,
-    );
-  if (lines.length === 0) return "No tengo registros para ese conteo todavía.";
-  const total = cats.reduce((a, [, items]) => a + categoryStat(items).count, 0);
-  return `📊 Tengo ${total.toLocaleString("es")} registros del terremoto:\n${lines.join("\n")}`;
+  const category = targets.size === 1 ? [...targets][0] : undefined;
+  return countItems(snap, { category });
 }
 
-// Intención genérica de "cómo pido/solicito ayuda" (guía), distinta de una
-// necesidad concreta ("necesito agua en Petare", que sí va al RAG).
+// --- Intención "cómo pido ayuda" + grito de auxilio escueto ---
 const HELP_PHRASES = [
   "solicitar ayuda",
   "pedir ayuda",
@@ -209,107 +38,34 @@ const HELP_PHRASES = [
   "quiero ayuda",
   "donde pido",
 ];
+const HELP_CRIES = [
+  "ayuda",
+  "ayudame",
+  "ayudenme",
+  "ayudenos",
+  "auxilio",
+  "socorro",
+];
+const HELP_FILLER = new Set([
+  ...HELP_CRIES,
+  "necesito",
+  "quiero",
+  "por",
+  "favor",
+  "porfa",
+  "porfavor",
+  "hola",
+  "una",
+  "algo",
+  "alguna",
+]);
+function isBareHelpCry(n: string): boolean {
+  const words = n.split(" ").filter(Boolean);
+  if (words.length === 0) return false;
+  const hasCry = words.some((w) => HELP_CRIES.includes(w));
+  return hasCry && words.every((w) => HELP_FILLER.has(w));
+}
 export function isHelpRequest(question: string): boolean {
   const n = normalize(question);
-  return HELP_PHRASES.some((p) => n.includes(p));
-}
-
-// Una coincidencia en el título o la ubicación es mucho más significativa que
-// una mención de pasada en el cuerpo del texto.
-const FIELD_WEIGHT = { titulo: 6, ubicacion: 4, status: 2, texto: 2 } as const;
-
-function scoreFields(it: PublicItem, kws: string[]): number {
-  const fields: Array<[number, string]> = [
-    [FIELD_WEIGHT.titulo, normalize(it.titulo)],
-    [FIELD_WEIGHT.ubicacion, normalize(it.ubicacion?.nombre ?? "")],
-    [FIELD_WEIGHT.status, normalize(it.status ?? "")],
-    [FIELD_WEIGHT.texto, normalize(it.texto)],
-  ];
-  let score = 0;
-  for (const [weight, text] of fields) {
-    if (!text) continue;
-    for (const kw of kws) if (text.includes(kw)) score += weight;
-  }
-  return score;
-}
-
-export function retrieve(
-  question: string,
-  snap: Snapshot,
-  k = 15,
-): PublicItem[] {
-  const kws = keywords(question);
-  if (kws.length === 0) return [];
-  const targetCats = inferCategories(question);
-  // Las palabras que dispararon la categoría ("desaparecidos", "edificios") no
-  // discriminan DENTRO de esa categoría: todos los ítems la cumplen. Las
-  // quitamos del ranking léxico para que mande el término real ("guaira").
-  const signals = [...targetCats].flatMap((c) => CATEGORY_SIGNALS[c]);
-  const rankKws = signals.length
-    ? kws.filter(
-        (kw) => !signals.some((s) => kw.startsWith(s) || s.startsWith(kw)),
-      )
-    : kws;
-  const scored: Array<{ item: PublicItem; score: number; target: boolean }> =
-    [];
-  for (const items of Object.values(snap.categories)) {
-    for (const item of items) {
-      // Los ítems marcados como no confiables por el enrichment no se ofrecen
-      // al modelo: evita que el bot cite reportes falsos o de troleo.
-      if (item.trust === "sospechoso") continue;
-      const score = scoreFields(item, rankKws);
-      const target = targetCats.has(item.category);
-      // Un ítem sin ninguna coincidencia léxica solo se considera si pertenece
-      // a la categoría que pide la pregunta (p.ej. "¿dónde hay acopios?" debe
-      // devolver acopios aunque su ficha no repita la palabra "acopio").
-      if (score === 0 && !target) continue;
-      scored.push({ item, score, target });
-    }
-  }
-  // Prioridad dura: cuando la pregunta apunta a una categoría, sus ítems van
-  // antes que los de otras categorías (un tweet de 'reportes' que menciona la
-  // ubicación de pasada no debe tapar las fichas reales). Dentro de cada grupo
-  // se ordena por score y, a igualdad, por recencia (orden estable del snapshot).
-  scored.sort((a, b) => {
-    if (targetCats.size > 0 && a.target !== b.target) return a.target ? -1 : 1;
-    if (b.score !== a.score) return b.score - a.score;
-    // A igualdad de score, preferir el canónico del cluster sobre sus duplicados
-    // y, luego, lo más corroborado (mayor nº de fuentes).
-    const ca = a.item.isCanonical ? 1 : 0;
-    const cb = b.item.isCanonical ? 1 : 0;
-    if (ca !== cb) return cb - ca;
-    return (b.item.sourcesCount ?? 0) - (a.item.sourcesCount ?? 0);
-  });
-  return selectWithQuota(scored, k).map((s) => s.item);
-}
-
-// Una categoría no debe copar todos los cupos cuando hay empates masivos
-// (p.ej. 'reportes', la más grande): reservamos espacio para otras categorías
-// relevantes. Si no hay suficiente diversidad, una segunda pasada rellena los
-// cupos restantes con los mejores que quedaron, sin desperdiciar lugares.
-const MAX_CATEGORY_FRACTION = 0.7;
-
-function selectWithQuota<T extends { item: PublicItem }>(
-  sorted: T[],
-  k: number,
-): T[] {
-  const cap = Math.max(1, Math.ceil(k * MAX_CATEGORY_FRACTION));
-  const perCat = new Map<string, number>();
-  const picked: T[] = [];
-  const leftovers: T[] = [];
-  for (const s of sorted) {
-    if (picked.length >= k) break;
-    const used = perCat.get(s.item.category) ?? 0;
-    if (used < cap) {
-      perCat.set(s.item.category, used + 1);
-      picked.push(s);
-    } else {
-      leftovers.push(s);
-    }
-  }
-  for (const s of leftovers) {
-    if (picked.length >= k) break;
-    picked.push(s);
-  }
-  return picked;
+  return HELP_PHRASES.some((p) => n.includes(p)) || isBareHelpCry(n);
 }
