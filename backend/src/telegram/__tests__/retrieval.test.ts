@@ -371,4 +371,22 @@ describe("isHelpRequest (issue #15: cómo solicitar ayuda)", () => {
     expect(isHelpRequest("necesito agua en Petare")).toBe(false);
     expect(isHelpRequest("dónde hay refugios")).toBe(false);
   });
+
+  // Escenario 3 del issue: un grito de ayuda escueto ("Ayuda", "auxilio")
+  // caía al RAG y devolvía reportes que mencionan "ayuda" de pasada.
+  it("detecta un grito de ayuda escueto", () => {
+    expect(isHelpRequest("Ayuda")).toBe(true);
+    expect(isHelpRequest("ayúdame")).toBe(true);
+    expect(isHelpRequest("auxilio")).toBe(true);
+    expect(isHelpRequest("socorro")).toBe(true);
+    expect(isHelpRequest("ayuda por favor")).toBe(true);
+    expect(isHelpRequest("necesito ayuda")).toBe(true);
+  });
+
+  it("NO trata como guía una necesidad concreta que contiene 'ayuda'", () => {
+    expect(isHelpRequest("necesito ayuda con agua en Petare")).toBe(false);
+    expect(isHelpRequest("ayuda para conseguir medicinas en La Guaira")).toBe(
+      false,
+    );
+  });
 });
