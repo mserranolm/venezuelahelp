@@ -70,6 +70,25 @@ export default function AboutPage() {
       </section>
 
       <section className={styles.section}>
+        <h2 className={styles.h2}>¿Cómo puedo ayudar?</h2>
+        <p>
+          Si quieres <strong>donar o aportar insumos</strong>, te recomendamos{" "}
+          <a
+            href="https://donarseguro.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.inlineLink}
+          >
+            donarseguro.com
+          </a>
+          , un directorio que reúne y verifica los canales oficiales de las
+          organizaciones que responden al terremoto (Cáritas, UNICEF, WFP y
+          otras). VenezuelaHelp no recibe ni gestiona donaciones: solo te
+          orientamos hacia fuentes confiables.
+        </p>
+      </section>
+
+      <section className={styles.section}>
         <h2 className={styles.h2}>Importante</h2>
         <p>
           VenezuelaHelp <strong>no es una fuente oficial</strong>. La
