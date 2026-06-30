@@ -11,6 +11,9 @@ interface FilterBarProps {
   resultCount: number;
   total: number;
   onClear: () => void;
+  matchActive: boolean;
+  onToggleMatch: () => void;
+  matchCount: number;
 }
 
 export default function FilterBar({
@@ -22,8 +25,11 @@ export default function FilterBar({
   resultCount,
   total,
   onClear,
+  matchActive,
+  onToggleMatch,
+  matchCount,
 }: FilterBarProps) {
-  const hasFilters = query.trim().length > 0 || active.size > 0;
+  const hasFilters = query.trim().length > 0 || active.size > 0 || matchActive;
 
   return (
     <div className={styles.root}>
@@ -36,11 +42,22 @@ export default function FilterBar({
         onChange={(e) => onQuery(e.target.value)}
       />
 
-      <CategoryFilter active={active} onToggle={onToggle} counts={counts} />
+      <CategoryFilter
+        active={active}
+        onToggle={onToggle}
+        counts={counts}
+        matchActive={matchActive}
+        onToggleMatch={onToggleMatch}
+        matchCount={matchCount}
+      />
 
       <div className={styles.results}>
         <p className={styles.resultsCount} aria-live="polite">
-          {hasFilters ? (
+          {matchActive ? (
+            <>
+              <strong>{matchCount}</strong> posibles localizaciones
+            </>
+          ) : hasFilters ? (
             <>
               <strong>{resultCount}</strong> de {total} resultados
             </>

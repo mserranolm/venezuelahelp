@@ -36,6 +36,8 @@ export default function App() {
   const { data, loading, error } = useSnapshot();
   const [query, setQuery] = useState("");
   const [active, setActive] = useState<Set<Category>>(new Set());
+  // Vista "Match": muestra el cruce buscado↔localizado en vez de la lista normal.
+  const [matchView, setMatchView] = useState(false);
   const [view, setView] = useState<View>("lista");
   const [route, setRoute] = useState<string>(
     typeof window !== "undefined" ? window.location.hash : "",
@@ -65,6 +67,8 @@ export default function App() {
   }, []);
 
   function onToggle(cat: Category) {
+    // Elegir una categoría sale de la vista Match (son excluyentes).
+    setMatchView(false);
     setActive((prev) => {
       const next = new Set(prev);
       if (next.has(cat)) {
@@ -76,9 +80,23 @@ export default function App() {
     });
   }
 
+  // El chip "Match" no filtra por categoría: muestra el cruce de localizaciones.
+  // Al activarlo limpiamos categorías y búsqueda (no aplican a los matches).
+  function onToggleMatch() {
+    setMatchView((prev) => {
+      const next = !prev;
+      if (next) {
+        setActive(new Set());
+        setQuery("");
+      }
+      return next;
+    });
+  }
+
   function onClear() {
     setQuery("");
     setActive(new Set());
+    setMatchView(false);
   }
 
   const isAbout = route === "#/quienes-somos";
@@ -126,6 +144,8 @@ export default function App() {
                 // Clave para reiniciar la lista infinita (volver arriba) cuando
                 // cambian los filtros.
                 const filterKey = `${query}|${[...active].sort().join(",")}`;
+                const matches = data.matches ?? [];
+                const matchCount = matches.length;
 
                 return (
                   <SourcesContext.Provider value={data.sources}>
@@ -154,6 +174,9 @@ export default function App() {
                           resultCount={filtered.length}
                           total={items.length}
                           onClear={onClear}
+                          matchActive={matchView}
+                          onToggleMatch={onToggleMatch}
+                          matchCount={matchCount}
                         />
                       </div>
                     </div>
@@ -173,9 +196,12 @@ export default function App() {
                           resultCount={filtered.length}
                           total={items.length}
                           onClear={onClear}
+                          matchActive={matchView}
+                          onToggleMatch={onToggleMatch}
+                          matchCount={matchCount}
                         />
 
-                        {filtered.length > 0 && (
+                        {!matchView && filtered.length > 0 && (
                           <div className={styles.subControls}>
                             <ViewToggle
                               view={view}
@@ -186,11 +212,9 @@ export default function App() {
                         )}
                       </div>
 
-                      {data.matches && data.matches.length > 0 && (
-                        <LocatedMatches matches={data.matches} />
-                      )}
-
-                      {filtered.length === 0 ? (
+                      {matchView ? (
+                        <LocatedMatches matches={matches} />
+                      ) : filtered.length === 0 ? (
                         <Empty query={query} />
                       ) : (
                         <div className={styles.results}>
@@ -218,7 +242,7 @@ export default function App() {
 
                     {/* Móvil: botón flotante para abrir el mapa a pantalla
                         completa (en desktop se usa el toggle Lista/Mapa). */}
-                    {located.length > 0 && !mapOpen && (
+                    {!matchView && located.length > 0 && !mapOpen && (
                       <button
                         type="button"
                         className={styles.mapFab}

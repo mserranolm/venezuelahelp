@@ -27,6 +27,9 @@ function renderBar(overrides: Overrides = {}) {
     resultCount: TOTAL,
     total: TOTAL,
     onClear: () => {},
+    matchActive: false,
+    onToggleMatch: () => {},
+    matchCount: 0,
     ...overrides,
   };
   return render(<FilterBar {...props} />);
@@ -124,5 +127,27 @@ describe("FilterBar", () => {
     expect(
       screen.queryByRole("button", { name: /limpiar filtros/i }),
     ).not.toBeInTheDocument();
+  });
+
+  it("renders a 'Match' chip with its count", () => {
+    renderBar({ matchCount: 294 });
+    const btn = screen.getByRole("button", { name: /match/i });
+    expect(btn).toBeInTheDocument();
+    expect(btn).toHaveTextContent("294");
+  });
+
+  it("clicking the Match chip calls onToggleMatch", async () => {
+    const onToggleMatch = vi.fn();
+    const user = userEvent.setup();
+    renderBar({ onToggleMatch, matchCount: 5 });
+    await user.click(screen.getByRole("button", { name: /match/i }));
+    expect(onToggleMatch).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows 'N posibles localizaciones' when Match is active", () => {
+    renderBar({ matchActive: true, matchCount: 294 });
+    expect(screen.getByText(/posibles localizaciones/i)).toHaveTextContent(
+      "294 posibles localizaciones",
+    );
   });
 });
