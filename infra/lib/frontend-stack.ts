@@ -174,17 +174,47 @@ export class FrontendStack extends Stack {
       });
     }
 
-    // Deploy frontend-public/dist to site bucket, invalidate distribution on deploy
-    new s3deploy.BucketDeployment(this, "DeploySite", {
-      sources: [
-        s3deploy.Source.asset(
-          path.join(__dirname, "../../frontend-public/dist"),
-        ),
-      ],
+    // Deploy en dos fases (mismo patrón que AdminStack) para no dejar el sitio
+    // en blanco tras un deploy. Antes era un único BucketDeployment con `prune`
+    // por defecto (true) → borraba los bundles hasheados viejos; un navegador con
+    // un index.html cacheado pedía un /assets/*.js ya purgado → 404 →
+    // errorResponses lo reescribía a index.html(200) → el <script type=module>
+    // recibía HTML → pantalla en blanco.
+    const publicDist = path.join(__dirname, "../../frontend-public/dist");
+
+    // Assets hasheados: cache largo e inmutable; `prune:false` para conservar los
+    // bundles viejos (un index.html cacheado los sigue encontrando en vez de 404).
+    const deployAssets = new s3deploy.BucketDeployment(
+      this,
+      "DeployPublicAssets",
+      {
+        sources: [
+          s3deploy.Source.asset(publicDist, { exclude: ["index.html"] }),
+        ],
+        destinationBucket: siteBucket,
+        cacheControl: [
+          s3deploy.CacheControl.fromString(
+            "public, max-age=31536000, immutable",
+          ),
+        ],
+        prune: false,
+      },
+    );
+
+    // index.html + estáticos de nombre estable (logo, favicon): SIN caché, y aquí
+    // se invalida CloudFront. Debe correr DESPUÉS de los assets para que los
+    // bundles ya estén en S3 antes de que el index nuevo los referencie e invalide.
+    const deployHtml = new s3deploy.BucketDeployment(this, "DeployPublicHtml", {
+      sources: [s3deploy.Source.asset(publicDist, { exclude: ["assets/**"] })],
       destinationBucket: siteBucket,
+      cacheControl: [
+        s3deploy.CacheControl.fromString("no-cache, no-store, must-revalidate"),
+      ],
+      prune: false,
       distribution,
       distributionPaths: ["/*"],
     });
+    deployHtml.node.addDependency(deployAssets);
 
     new CfnOutput(this, "SiteUrl", {
       value: props.domainName
