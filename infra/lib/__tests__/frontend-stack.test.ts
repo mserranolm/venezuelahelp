@@ -9,10 +9,9 @@ import * as path from "node:path";
 // BucketDeployment checks the source path exists at synth time.
 // Create a placeholder so CDK can construct the stack without a real build.
 beforeAll(() => {
-  fs.mkdirSync(
-    path.join(__dirname, "../../../frontend-public/dist"),
-    { recursive: true },
-  );
+  fs.mkdirSync(path.join(__dirname, "../../../frontend-public/dist"), {
+    recursive: true,
+  });
 });
 
 function template() {
@@ -43,8 +42,25 @@ describe("FrontendStack", () => {
     });
   });
 
-  it("creates a Custom::CDKBucketDeployment resource", () => {
-    template().resourceCountIs("Custom::CDKBucketDeployment", 1);
+  it("creates two BucketDeployments (assets immutable + html no-cache)", () => {
+    template().resourceCountIs("Custom::CDKBucketDeployment", 2);
+  });
+
+  it("deploys index.html + invalidation only AFTER the assets are uploaded", () => {
+    // Mismo patrón que el admin: sin esta dependencia el index.html (que dispara
+    // la invalidación) puede publicarse antes de subir los /assets/* → 404 →
+    // errorResponses lo reescribe a index.html(200) → pantalla en blanco.
+    const deployments = template().findResources("Custom::CDKBucketDeployment");
+    const entries = Object.entries(deployments);
+    const html = entries.find(([, r]) => r.Properties?.DistributionId);
+    const assets = entries.find(([, r]) => !r.Properties?.DistributionId);
+    expect(html, "debe existir el deployment con invalidación").toBeDefined();
+    expect(assets, "debe existir el deployment de assets").toBeDefined();
+    const dependsOn = ([] as string[]).concat(html![1].DependsOn ?? []);
+    expect(
+      dependsOn,
+      "el deployment del index.html debe depender del de assets",
+    ).toContain(assets![0]);
   });
 
   it("distribution has a CacheBehavior with PathPattern snapshot.json", () => {
